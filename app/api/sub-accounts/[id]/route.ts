@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SubAccount, User, UserOperationLog } from '@/models'
-import { verifyToken, successResponse, errorResponse, hashPassword, getClientIP } from '@/lib/utils'
+import { verifyToken, successResponse, errorResponse, hashPassword, getClientIP, formatObjectDates } from '@/lib/utils'
 
 // 获取子账户详情
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const subAccount = await SubAccount.findOne({
       where: {
         id: subAccountId,
-        parent_user_id: userId,
+        parentUserId: userId,
       },
       attributes: {
         exclude: ['password']
@@ -43,12 +43,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // 处理数据
     const result = {
-      ...subAccount.toJSON(),
+      ...formatObjectDates(subAccount.toJSON()),
       responsible_shops: JSON.parse((subAccount as any).responsible_shops || '[]'),
       permissions: JSON.parse((subAccount as any).permissions || '[]'),
     }
 
-    return NextResponse.json(successResponse(result, '获取子账户详情成功'))
+    return NextResponse.json(successResponse(formatObjectDates(result), '获取子账户详情成功'))
   } catch (error) {
     console.error('获取子账户详情失败:', error)
     return NextResponse.json(errorResponse('获取子账户详情失败，请稍后重试'), { status: 500 })
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const subAccount = await SubAccount.findOne({
       where: {
         id: subAccountId,
-        parent_user_id: userId,
+        parentUserId: userId,
       },
     })
 
@@ -177,14 +177,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // 记录操作日志
     await UserOperationLog.create({
-      user_id: userId,
-      operation_type: 'sub_account_update',
-      operation_description: `更新子账户：${(subAccount as any).username}`,
-      target_type: 'sub_account',
-      target_id: Number(subAccountId),
-      request_data: JSON.stringify(updateData),
-      ip_address: getClientIP(request),
-      user_agent: request.headers.get('user-agent') || '',
+      userId: userId,
+      operationType: 'sub_account_update',
+      operationDesc: `更新子账户：${(subAccount as any).username}`,
+      targetType: 'sub_account',
+      targetId: Number(subAccountId),
+      requestData: JSON.stringify(updateData),
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || '',
       status: 'success',
     } as any)
 
@@ -197,12 +197,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // 处理数据
     const result = {
-      ...updatedSubAccount?.toJSON(),
+      ...formatObjectDates(updatedSubAccount?.toJSON()),
       responsible_shops: JSON.parse((updatedSubAccount as any)?.responsible_shops || '[]'),
       permissions: JSON.parse((updatedSubAccount as any)?.permissions || '[]'),
     }
 
-    return NextResponse.json(successResponse(result, '子账户更新成功'))
+    return NextResponse.json(successResponse(formatObjectDates(result), '子账户更新成功'))
   } catch (error) {
     console.error('更新子账户失败:', error)
     return NextResponse.json(errorResponse('更新子账户失败，请稍后重试'), { status: 500 })
@@ -237,7 +237,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const subAccount = await SubAccount.findOne({
       where: {
         id: subAccountId,
-        parent_user_id: userId,
+        parentUserId: userId,
       },
     })
 
@@ -252,14 +252,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // 记录操作日志
     await UserOperationLog.create({
-      user_id: userId,
-      operation_type: 'sub_account_delete',
-      operation_description: `删除子账户：${username}`,
-      target_type: 'sub_account',
-      target_id: Number(subAccountId),
-      request_data: JSON.stringify({ subAccountId, username }),
-      ip_address: getClientIP(request),
-      user_agent: request.headers.get('user-agent') || '',
+      userId: userId,
+      operationType: 'sub_account_delete',
+      operationDesc: `删除子账户：${username}`,
+      targetType: 'sub_account',
+      targetId: Number(subAccountId),
+      requestData: JSON.stringify({ subAccountId, username }),
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || '',
       status: 'success',
     } as any)
 

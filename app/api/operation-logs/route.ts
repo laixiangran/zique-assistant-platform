@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserOperationLog, User } from '@/models'
-import { verifyToken, successResponse, errorResponse } from '@/lib/utils'
+import { verifyToken, successResponse, errorResponse, formatObjectDates } from '@/lib/utils'
 import { Op } from 'sequelize'
 
 // 获取用户操作日志
@@ -42,25 +42,25 @@ export async function GET(request: NextRequest) {
         attributes: ['id'],
       })
       const subUserIds = subUsers.map((user: any) => user.id)
-      where.user_id = { [Op.in]: [userId, ...subUserIds] }
+      where.userId = { [Op.in]: [userId, ...subUserIds] }
     } else {
       // 子账户只能查看自己的操作日志
-      where.user_id = userId
+      where.userId = userId
     }
 
     // 添加其他筛选条件
-    if (operationType) where.operation_type = operationType
+    if (operationType) where.operationType = operationType
     if (status) where.status = status
     if (startDate && endDate) {
-      where.created_at = {
+      where.createdTime = {
         [Op.between]: [new Date(startDate), new Date(endDate)],
       }
     } else if (startDate) {
-      where.created_at = {
+      where.createdTime = {
         [Op.gte]: new Date(startDate),
       }
     } else if (endDate) {
-      where.created_at = {
+      where.createdTime = {
         [Op.lte]: new Date(endDate),
       }
     }
@@ -77,17 +77,17 @@ export async function GET(request: NextRequest) {
       ],
       limit,
       offset: (page - 1) * limit,
-      order: [['created_at', 'DESC']],
+      order: [['createdTime', 'DESC']],
     })
 
     // 计算统计数据
     const totalLogs = await UserOperationLog.count({
       where: userType === 'user' ? {
-        user_id: { [Op.in]: [userId, ...(await User.findAll({
+        userId: { [Op.in]: [userId, ...(await User.findAll({
           where: { parent_user_id: userId } as any,
           attributes: ['id'],
         })).map((user: any) => user.id)] }
-      } : { user_id: userId },
+      } : { userId: userId },
     } as any)
 
     const successLogs = await UserOperationLog.count({
@@ -108,17 +108,17 @@ export async function GET(request: NextRequest) {
     const operationTypeStats = await UserOperationLog.findAll({
       where,
       attributes: [
-        'operation_type',
+        'operationType',
         [UserOperationLog.sequelize?.fn('COUNT', UserOperationLog.sequelize?.col('id')), 'count'],
       ],
-      group: ['operation_type'],
+      group: ['operationType'],
       order: [[UserOperationLog.sequelize?.fn('COUNT', UserOperationLog.sequelize?.col('id')), 'DESC']],
     } as any)
 
     return NextResponse.json(
       successResponse(
         {
-          logs: rows,
+          logs: formatObjectDates(rows),
           pagination: {
             total: count,
             page,
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
             total: totalLogs,
             success: successLogs,
             failed: failedLogs,
-            operationTypes: operationTypeStats,
+            operationTypes: formatObjectDates(operationTypeStats),
           },
         },
         '获取操作日志成功'
@@ -181,8 +181,8 @@ export async function DELETE(request: NextRequest) {
     // 删除指定日期前的日志
     const deletedCount = await UserOperationLog.destroy({
       where: {
-        user_id: { [Op.in]: userIds },
-        created_at: { [Op.lt]: cleanupDate },
+        userId: { [Op.in]: userIds },
+        createdTime: { [Op.lt]: cleanupDate },
       },
     })
 
@@ -190,7 +190,7 @@ export async function DELETE(request: NextRequest) {
       successResponse(
         {
           deletedCount,
-          cleanupDate: cleanupDate.toISOString(),
+          cleanupDate: formatObjectDates(cleanupDate),
         },
         `成功清理 ${deletedCount} 条操作日志`
       )

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SubAccount, User, UserOperationLog } from '@/models'
-import { verifyToken, successResponse, errorResponse, hashPassword, getClientIP } from '@/lib/utils'
+import { verifyToken, successResponse, errorResponse, hashPassword, getClientIP, formatObjectDates } from '@/lib/utils'
 
 // 获取子账户列表
 export async function GET(request: NextRequest) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role')
 
     // 构建查询条件
-    const where: any = { parent_user_id: userId }
+    const where: any = { parentUserId: userId }
     if (status) where.status = status
     if (role) where.role = role
 
@@ -45,12 +45,12 @@ export async function GET(request: NextRequest) {
       },
       limit,
       offset: (page - 1) * limit,
-      order: [['created_at', 'DESC']],
+      order: [['createdTime', 'DESC']],
     })
 
     // 处理数据
     const processedRows = rows.map((row: any) => ({
-      ...row.toJSON(),
+      ...formatObjectDates(row.toJSON()),
       responsible_shops: JSON.parse(row.responsible_shops || '[]'),
       permissions: JSON.parse(row.permissions || '[]'),
     }))
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     // 创建子账户
     const subAccount = await SubAccount.create({
-      parent_user_id: userId,
+      parentUserId: userId,
       username,
       password: hashedPassword,
       responsible_shops: JSON.stringify(responsible_shops),
@@ -159,26 +159,26 @@ export async function POST(request: NextRequest) {
 
     // 记录操作日志
     await UserOperationLog.create({
-      user_id: userId,
-      operation_type: 'sub_account_create',
-      operation_description: `创建子账户：${username}`,
-      target_type: 'sub_account',
-      target_id: Number(subAccount.id),
-      request_data: JSON.stringify({ username, role, responsible_shops, permissions }),
-      ip_address: getClientIP(request),
-      user_agent: request.headers.get('user-agent') || '',
+      userId: userId,
+      operationType: 'sub_account_create',
+      operationDesc: `创建子账户：${username}`,
+      targetType: 'sub_account',
+      targetId: Number(subAccount.id),
+      requestData: JSON.stringify({ username, role, responsible_shops, permissions }),
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || '',
       status: 'success',
     } as any)
 
     // 返回结果（不包含密码）
     const result = {
-      ...subAccount.toJSON(),
+      ...formatObjectDates(subAccount.toJSON()),
       responsible_shops: JSON.parse((subAccount as any).responsible_shops || '[]'),
       permissions: JSON.parse((subAccount as any).permissions || '[]'),
     }
     delete (result as any).password
 
-    return NextResponse.json(successResponse(result, '子账户创建成功'))
+    return NextResponse.json(successResponse(formatObjectDates(result), '子账户创建成功'))
   } catch (error) {
     console.error('创建子账户失败:', error)
     return NextResponse.json(errorResponse('创建子账户失败，请稍后重试'), { status: 500 })

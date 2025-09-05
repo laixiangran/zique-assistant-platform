@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { UserPackage, MembershipPackage, User, UserOperationLog } from '@/models'
-import { verifyToken, successResponse, errorResponse, generateOrderNo, getClientIP } from '@/lib/utils'
+import { verifyToken, successResponse, errorResponse, generateOrderNo, getClientIP, formatObjectDates } from '@/lib/utils'
 
 // 获取用户套餐订购记录
 export async function GET(request: NextRequest) {
@@ -46,9 +46,9 @@ export async function GET(request: NextRequest) {
 
     // 处理数据
     const processedRows = rows.map((row: any) => ({
-      ...row.toJSON(),
+      ...formatObjectDates(row.toJSON()),
       package: row.package ? {
-        ...row.package.toJSON(),
+        ...formatObjectDates(row.package.toJSON()),
         features: JSON.parse(row.package.features || '[]'),
       } : null,
     }))
@@ -152,9 +152,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       successResponse(
         {
-          ...userPackage.toJSON(),
+          ...formatObjectDates(userPackage.toJSON()),
           package: {
-            ...(membershipPackage as any).toJSON(),
+            ...formatObjectDates((membershipPackage as any).toJSON()),
             features: JSON.parse((membershipPackage as any).features || '[]'),
           },
         },

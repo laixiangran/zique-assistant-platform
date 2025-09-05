@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MembershipPackage } from '@/models'
-import { verifyToken, successResponse, errorResponse } from '@/lib/utils'
+import { verifyToken, successResponse, errorResponse, formatObjectDates } from '@/lib/utils'
 
 // 获取会员套餐列表
 export async function GET(request: NextRequest) {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // 处理功能字段
     const processedPackages = packages.map((pkg: any) => ({
-      ...pkg.toJSON(),
+      ...formatObjectDates(pkg.toJSON()),
       features: JSON.parse(pkg.features || '[]'),
     }))
 
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       successResponse(
         {
-          ...membershipPackage.toJSON(),
+          ...formatObjectDates(membershipPackage.toJSON()),
           features: JSON.parse((membershipPackage as any).features || '[]'),
         },
         '套餐创建成功'

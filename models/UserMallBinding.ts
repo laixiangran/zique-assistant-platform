@@ -1,27 +1,34 @@
-import { DataTypes, Model, Optional } from 'sequelize'
-import sequelize from '../lib/database'
-import User from './User'
+import { DataTypes, Model, Optional } from 'sequelize';
+import sequelize from '../lib/database';
+import User from './User';
 
 interface UserMallBindingAttributes {
-  id: number
-  userId: number
-  mallId: number
-  mallName: string
-  bindTime?: Date
-  createdTime: Date
-  updatedTime: Date
+  id: number;
+  userId: number;
+  mallId: number;
+  mallName: string;
+  bindTime?: Date;
+  createdTime: Date;
+  updatedTime: Date;
 }
 
-interface UserMallBindingCreationAttributes extends Optional<UserMallBindingAttributes, 'id' | 'bindTime' | 'createdTime' | 'updatedTime'> {}
+interface UserMallBindingCreationAttributes
+  extends Optional<
+    UserMallBindingAttributes,
+    'id' | 'bindTime' | 'createdTime' | 'updatedTime'
+  > {}
 
-class UserMallBinding extends Model<UserMallBindingAttributes, UserMallBindingCreationAttributes> implements UserMallBindingAttributes {
-  public id!: number
-  public userId!: number
-  public mallId!: number
-  public mallName!: string
-  public bindTime?: Date
-  public createdTime!: Date
-  public updatedTime!: Date
+class UserMallBinding
+  extends Model<UserMallBindingAttributes, UserMallBindingCreationAttributes>
+  implements UserMallBindingAttributes
+{
+  public id!: number;
+  public userId!: number;
+  public mallId!: number;
+  public mallName!: string;
+  public bindTime?: Date;
+  public createdTime!: Date;
+  public updatedTime!: Date;
 }
 
 UserMallBinding.init(
@@ -80,17 +87,17 @@ UserMallBinding.init(
       },
     ],
   }
-)
+);
 
 // 定义关联关系
 UserMallBinding.belongsTo(User, {
   foreignKey: 'userId',
   as: 'user',
-})
+});
 
 User.hasMany(UserMallBinding, {
   foreignKey: 'userId',
   as: 'shopBindings',
-})
+});
 
-export default UserMallBinding
+export default UserMallBinding;
