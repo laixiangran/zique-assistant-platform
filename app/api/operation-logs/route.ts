@@ -1,0 +1,202 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { UserOperationLog, User } from '@/models'
+import { verifyToken, successResponse, errorResponse } from '@/lib/utils'
+import { Op } from 'sequelize'
+
+// 获取用户操作日志
+export async function GET(request: NextRequest) {
+  try {
+    // 获取token
+    const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.replace('Bearer ', '')
+
+    if (!token) {
+      return NextResponse.json(errorResponse('未登录'), { status: 401 })
+    }
+
+    // 验证token
+    const decoded = verifyToken(token) as any
+    if (!decoded) {
+      return NextResponse.json(errorResponse('token无效'), { status: 401 })
+    }
+
+    const userId = decoded.userId
+    const userType = decoded.type
+
+    // 获取查询参数
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const operationType = searchParams.get('operation_type')
+    const status = searchParams.get('status')
+    const startDate = searchParams.get('start_date')
+    const endDate = searchParams.get('end_date')
+
+    // 构建查询条件
+    const where: any = {}
+    
+    // 根据用户类型设置查询条件
+    if (userType === 'user') {
+      // 主账户可以查看自己和子账户的操作日志
+      const subUsers = await User.findAll({
+        where: { parent_user_id: userId } as any,
+        attributes: ['id'],
+      })
+      const subUserIds = subUsers.map((user: any) => user.id)
+      where.user_id = { [Op.in]: [userId, ...subUserIds] }
+    } else {
+      // 子账户只能查看自己的操作日志
+      where.user_id = userId
+    }
+
+    // 添加其他筛选条件
+    if (operationType) where.operation_type = operationType
+    if (status) where.status = status
+    if (startDate && endDate) {
+      where.created_at = {
+        [Op.between]: [new Date(startDate), new Date(endDate)],
+      }
+    } else if (startDate) {
+      where.created_at = {
+        [Op.gte]: new Date(startDate),
+      }
+    } else if (endDate) {
+      where.created_at = {
+        [Op.lte]: new Date(endDate),
+      }
+    }
+
+    // 查询操作日志
+    const { count, rows } = await UserOperationLog.findAndCountAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'username', 'phone', 'email', 'account_type'],
+        },
+      ],
+      limit,
+      offset: (page - 1) * limit,
+      order: [['created_at', 'DESC']],
+    })
+
+    // 计算统计数据
+    const totalLogs = await UserOperationLog.count({
+      where: userType === 'user' ? {
+        user_id: { [Op.in]: [userId, ...(await User.findAll({
+          where: { parent_user_id: userId } as any,
+          attributes: ['id'],
+        })).map((user: any) => user.id)] }
+      } : { user_id: userId },
+    } as any)
+
+    const successLogs = await UserOperationLog.count({
+      where: {
+        ...where,
+        status: 'success',
+      },
+    })
+
+    const failedLogs = await UserOperationLog.count({
+      where: {
+        ...where,
+        status: 'failed',
+      },
+    })
+
+    // 获取操作类型统计
+    const operationTypeStats = await UserOperationLog.findAll({
+      where,
+      attributes: [
+        'operation_type',
+        [UserOperationLog.sequelize?.fn('COUNT', UserOperationLog.sequelize?.col('id')), 'count'],
+      ],
+      group: ['operation_type'],
+      order: [[UserOperationLog.sequelize?.fn('COUNT', UserOperationLog.sequelize?.col('id')), 'DESC']],
+    } as any)
+
+    return NextResponse.json(
+      successResponse(
+        {
+          logs: rows,
+          pagination: {
+            total: count,
+            page,
+            limit,
+            pages: Math.ceil(count / limit),
+          },
+          stats: {
+            total: totalLogs,
+            success: successLogs,
+            failed: failedLogs,
+            operationTypes: operationTypeStats,
+          },
+        },
+        '获取操作日志成功'
+      )
+    )
+  } catch (error) {
+    console.error('获取操作日志失败:', error)
+    return NextResponse.json(errorResponse('获取操作日志失败，请稍后重试'), { status: 500 })
+  }
+}
+
+// 清理操作日志（仅管理员）
+export async function DELETE(request: NextRequest) {
+  try {
+    // 获取token
+    const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.replace('Bearer ', '')
+
+    if (!token) {
+      return NextResponse.json(errorResponse('未登录'), { status: 401 })
+    }
+
+    // 验证token
+    const decoded = verifyToken(token) as any
+    if (!decoded) {
+      return NextResponse.json(errorResponse('token无效'), { status: 401 })
+    }
+
+    // 只有主账户可以清理操作日志
+    if (decoded.type !== 'user') {
+      return NextResponse.json(errorResponse('只有主账户可以清理操作日志'), { status: 403 })
+    }
+
+    const userId = decoded.userId
+    const body = await request.json()
+    const { days = 30 } = body // 默认清理30天前的日志
+
+    // 计算清理日期
+    const cleanupDate = new Date()
+    cleanupDate.setDate(cleanupDate.getDate() - days)
+
+    // 获取要清理的日志范围（主账户和子账户）
+    const subUsers = await User.findAll({
+      where: { parent_user_id: userId } as any,
+      attributes: ['id'],
+    })
+    const subUserIds = subUsers.map((user: any) => user.id)
+    const userIds = [userId, ...subUserIds]
+
+    // 删除指定日期前的日志
+    const deletedCount = await UserOperationLog.destroy({
+      where: {
+        user_id: { [Op.in]: userIds },
+        created_at: { [Op.lt]: cleanupDate },
+      },
+    })
+
+    return NextResponse.json(
+      successResponse(
+        {
+          deletedCount,
+          cleanupDate: cleanupDate.toISOString(),
+        },
+        `成功清理 ${deletedCount} 条操作日志`
+      )
+    )
+  } catch (error) {
+    console.error('清理操作日志失败:', error)
+    return NextResponse.json(errorResponse('清理操作日志失败，请稍后重试'), { status: 500 })
+  }
+}
