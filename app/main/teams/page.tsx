@@ -1,25 +1,10 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import {
-  Card,
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  message,
-  Space,
-  Tag,
-  Popconfirm,
-  Row,
-  Col,
-  Statistic,
-  Transfer,
-  Checkbox,
-} from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons'
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Button, Space, Tag, Statistic, Row, Col, Modal, Form, Input, Select, message, Popconfirm } from 'antd';
+import { UserAddOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { subAccountsAPI, mallsAPI } from '../../services';
+
 import { useRouter } from 'next/navigation'
 
 const { Option } = Select
@@ -80,11 +65,12 @@ export default function SubAccountsPage() {
   const fetchSubAccounts = async (page = 1, pageSize = 10) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/sub-accounts?page=${page}&limit=${pageSize}`, {
-        credentials: 'include',
-      })
-      const data = await response.json()
-
+      const response = await subAccountsAPI.getSubAccounts({
+        page,
+        pageSize,
+      });
+      
+      const data = response.data;
       if (data.success) {
         setSubAccounts(data.data.subAccounts)
         setPagination({
@@ -112,11 +98,8 @@ export default function SubAccountsPage() {
   // 获取店铺列表
   const fetchShops = async () => {
     try {
-      const response = await fetch('/api/shops?limit=1000', {
-        credentials: 'include',
-      })
-      const data = await response.json()
-
+      const response = await mallsAPI.getMalls({ pageSize: 1000 });
+      const data = response.data;
       if (data.success) {
         setShops(data.data.shops)
       }

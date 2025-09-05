@@ -1,25 +1,10 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import {
-  Card,
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  Switch,
-  message,
-  Space,
-  Tag,
-  Popconfirm,
-  Row,
-  Col,
-  Statistic,
-  Descriptions,
-} from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, GiftOutlined, ShoppingOutlined } from '@ant-design/icons'
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Button, Space, Tag, Statistic, Row, Col, Modal, Form, Input, Select, message, InputNumber } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, ShoppingCartOutlined, ReloadOutlined } from '@ant-design/icons';
+import { packagesAPI, userPackagesAPI } from '../../services';
+
 import { useRouter } from 'next/navigation'
 
 interface Package {
@@ -77,11 +62,9 @@ export default function PackagesPage() {
   const fetchPackages = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/packages', {
-        credentials: 'include',
-      })
-      const data = await response.json()
-
+      const response = await packagesAPI.getPackages({});
+      const data = response.data;
+      
       if (data.success) {
         setPackages(data.data)
         
@@ -103,11 +86,9 @@ export default function PackagesPage() {
   // 获取用户套餐订购记录
   const fetchUserPackages = async () => {
     try {
-      const response = await fetch('/api/user-packages', {
-        credentials: 'include',
-      })
-      const data = await response.json()
-
+      const response = await userPackagesAPI.getUserPackages({});
+      const data = response.data;
+      
       if (data.success) {
         setUserPackages(data.data.userPackages)
         
@@ -162,19 +143,12 @@ export default function PackagesPage() {
   // 订购套餐
   const handleOrderPackage = async (values: any) => {
     try {
-      const response = await fetch('/api/user-packages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          package_id: selectedPackage?.id,
-          ...values,
-        }),
-      })
-      const data = await response.json()
-
+      const response = await userPackagesAPI.createUserPackage({
+        package_id: selectedPackage?.id,
+        ...values,
+      });
+      const data = response.data;
+      
       if (data.success) {
         message.success('套餐订购成功')
         setOrderModalVisible(false)

@@ -1,0 +1,213 @@
+import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
+
+// 创建axios实例
+const apiClient = axios.create({
+  baseURL: '/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// 请求拦截器
+apiClient.interceptors.request.use(
+  (config) => {
+    // 可以在这里添加token等认证信息
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 响应拦截器
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => {
+    return response;
+  },
+  (error) => {
+    // 统一错误处理
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// 通用请求方法
+const request = {
+  get: <T = any>(url: string, config?: AxiosRequestConfig) =>
+    apiClient.get<T>(url, config),
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
+    apiClient.post<T>(url, data, config),
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
+    apiClient.put<T>(url, data, config),
+  delete: <T = any>(url: string, config?: AxiosRequestConfig) =>
+    apiClient.delete<T>(url, config),
+};
+
+// 认证相关API
+export const authAPI = {
+  // 获取当前用户信息
+  getCurrentUser: (signal?: AbortSignal) => request.get('/auth/me', { signal }),
+
+  // 登录
+  login: (credentials: { username: string; password: string }) =>
+    request.post('/auth/login', credentials),
+
+  // 登出
+  logout: () => request.post('/auth/logout'),
+};
+
+// 店铺相关API
+export const mallsAPI = {
+  // 获取店铺列表
+  getMalls: (params: Record<string, any>, signal?: AbortSignal) => {
+    const queryParams = new URLSearchParams(params);
+    return request.get(`/malls?${queryParams.toString()}`, { signal });
+  },
+
+  // 创建店铺
+  createMall: (data: any) => request.post('/malls', data),
+
+  // 删除店铺
+  deleteMall: (id: number) => request.delete(`/malls?id=${id}`),
+};
+
+// 邀请相关API
+export const invitationsAPI = {
+  // 获取邀请列表
+  getInvitations: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    signal?: AbortSignal
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return request.get(`/invitations?${queryParams.toString()}`, { signal });
+  },
+};
+
+// 子账户相关API
+export const subAccountsAPI = {
+  // 获取子账户列表
+  getSubAccounts: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    signal?: AbortSignal
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return request.get(`/sub-accounts?${queryParams.toString()}`, { signal });
+  },
+
+  // 创建子账户
+  createSubAccount: (data: any) => request.post('/sub-accounts', data),
+
+  // 更新子账户
+  updateSubAccount: (id: string, data: any) =>
+    request.put(`/sub-accounts/${id}`, data),
+
+  // 删除子账户
+  deleteSubAccount: (id: string) => request.delete(`/sub-accounts/${id}`),
+};
+
+// 套餐相关API
+export const packagesAPI = {
+  // 获取套餐列表
+  getPackages: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    signal?: AbortSignal
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return request.get(`/packages?${queryParams.toString()}`, { signal });
+  },
+};
+
+// 用户套餐相关API
+export const userPackagesAPI = {
+  // 获取用户套餐列表
+  getUserPackages: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    signal?: AbortSignal
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return request.get(`/user-packages?${queryParams.toString()}`, { signal });
+  },
+};
+
+// 操作日志相关API
+export const operationLogsAPI = {
+  // 获取操作日志列表
+  getOperationLogs: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    signal?: AbortSignal
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return request.get(`/operation-logs?${queryParams.toString()}`, { signal });
+  },
+};
+
+// 邀请奖励相关API
+export const invitationRewardsAPI = {
+  // 获取邀请奖励列表
+  getInvitationRewards: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    signal?: AbortSignal
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    return request.get(`/invitation-rewards?${queryParams.toString()}`, {
+      signal,
+    });
+  },
+};
+
+export default apiClient;

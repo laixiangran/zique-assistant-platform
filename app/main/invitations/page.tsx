@@ -1,23 +1,10 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  message,
-  Statistic,
-  Row,
-  Col,
-  Tag,
-  Modal,
-  Input,
-  Typography,
-  Tabs,
-  Select,
-  Tooltip,
-} from 'antd'
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Button, Space, Tag, Statistic, Row, Col, Select, DatePicker, message } from 'antd';
+import { UserAddOutlined, GiftOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { invitationsAPI, invitationRewardsAPI } from '../../services';
+
 import {
   GiftOutlined,
   ShareAltOutlined,
@@ -116,16 +103,13 @@ export default function InvitationsPage() {
   const fetchInvitations = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        page: invitationPagination.current.toString(),
-        limit: invitationPagination.pageSize.toString(),
-        ...(invitationFilters.type && { type: invitationFilters.type }),
-        ...(invitationFilters.status && { status: invitationFilters.status }),
-      })
-
-      const response = await fetch(`/api/invitations?${params}`)
-      const data = await response.json()
-
+      const response = await invitationsAPI.getInvitations({
+        page: invitationPagination.current,
+        pageSize: invitationPagination.pageSize,
+        ...invitationFilters,
+      });
+      
+      const data = response.data;
       if (data.success) {
         setInvitations(data.data.invitations)
         setInvitationStats(data.data.stats)
@@ -148,16 +132,13 @@ export default function InvitationsPage() {
   const fetchRewards = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        page: rewardPagination.current.toString(),
-        limit: rewardPagination.pageSize.toString(),
-        ...(rewardFilters.status && { status: rewardFilters.status }),
-        ...(rewardFilters.reward_type && { reward_type: rewardFilters.reward_type }),
-      })
-
-      const response = await fetch(`/api/invitation-rewards?${params}`)
-      const data = await response.json()
-
+      const response = await invitationRewardsAPI.getInvitationRewards({
+        page: rewardPagination.current,
+        pageSize: rewardPagination.pageSize,
+        ...rewardFilters,
+      });
+      
+      const data = response.data;
       if (data.success) {
         setRewards(data.data.rewards)
         setRewardStats(data.data.stats)

@@ -7,7 +7,6 @@ interface UserMallBindingAttributes {
   userId: number;
   mallId: number;
   mallName: string;
-  bindTime?: Date;
   createdTime: Date;
   updatedTime: Date;
 }
@@ -15,7 +14,7 @@ interface UserMallBindingAttributes {
 interface UserMallBindingCreationAttributes
   extends Optional<
     UserMallBindingAttributes,
-    'id' | 'bindTime' | 'createdTime' | 'updatedTime'
+    'id' | 'createdTime' | 'updatedTime'
   > {}
 
 class UserMallBinding
@@ -26,7 +25,6 @@ class UserMallBinding
   public userId!: number;
   public mallId!: number;
   public mallName!: string;
-  public bindTime?: Date;
   public createdTime!: Date;
   public updatedTime!: Date;
 }
@@ -57,11 +55,6 @@ UserMallBinding.init(
       allowNull: false,
       field: 'mall_name',
     },
-    bindTime: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'bind_time',
-    },
     createdTime: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -82,7 +75,7 @@ UserMallBinding.init(
     indexes: [
       {
         unique: true,
-        fields: ['user_id', 'shop_id', 'shop_platform'],
+        fields: ['user_id', 'mall_id'],
         name: 'unique_user_shop_binding',
       },
     ],

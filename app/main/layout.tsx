@@ -15,6 +15,7 @@ import {
   DashboardOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+import { authAPI } from '../services';
 
 const { Header, Sider, Content } = Layout;
 
@@ -42,7 +43,7 @@ export default function mainLayout({
   // 根据当前路径获取选中的菜单项
   const getSelectedKey = () => {
     if (pathname.startsWith('/main/home')) return ['home'];
-    if (pathname.startsWith('/main/shops')) return ['shops'];
+    if (pathname.startsWith('/main/malls')) return ['malls'];
     if (pathname.startsWith('/main/teams')) return ['teams'];
     if (pathname.startsWith('/main/invitations')) return ['invitations'];
     return ['home'];
@@ -54,13 +55,8 @@ export default function mainLayout({
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const data = await response.json();
-        setUserInfo(data.data);
-      } else {
-        router.push('/login');
-      }
+      const response = await authAPI.getCurrentUser();
+      setUserInfo(response.data.data);
     } catch (error) {
       console.error('认证检查失败:', error);
       router.push('/login');
@@ -71,7 +67,7 @@ export default function mainLayout({
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await authAPI.logout();
       localStorage.removeItem('user');
       localStorage.removeItem('accountType');
       message.success('退出成功');
@@ -106,12 +102,12 @@ export default function mainLayout({
 
   const sideMenuItems: MenuProps['items'] = [
     {
-      key: 'index',
+      key: 'home',
       icon: <DashboardOutlined />,
       label: '首页',
     },
     {
-      key: 'shops',
+      key: 'malls',
       icon: <ShopOutlined />,
       label: '店铺管理',
     },
@@ -202,8 +198,8 @@ export default function mainLayout({
               onClick={({ key }) => {
                 if (key === 'home') {
                   router.push('/main/home');
-                } else if (key === 'shops') {
-                  router.push('/main/shops');
+                } else if (key === 'malls') {
+                  router.push('/main/malls');
                 } else if (key === 'teams') {
                   router.push('/main/teams');
                 } else if (key === 'invitations') {
@@ -233,7 +229,7 @@ export default function mainLayout({
               height: 'calc(100vh - 64px)',
               overflow: 'auto',
               backgroundColor: '#f5f5f5',
-              padding: '24px',
+              padding: '12px',
             }}
           >
             {children}
