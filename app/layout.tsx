@@ -1,28 +1,30 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { ConfigProvider } from 'antd'
-import theme from '../lib/theme'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import type { Metadata } from 'next';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { ConfigProvider } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: '紫鹊助手平台',
-  description: '基于 Next.js 的后台管理系统',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="zh-CN">
-      <body className={inter.className}>
-        <ConfigProvider theme={theme}>
+  title: '紫鹊跨境运营平台',
+  description: '紫鹊跨境运营平台',
+};
+const RootLayout = ({ children }: React.PropsWithChildren) => (
+  <html lang='zh-CN'>
+    <body>
+      <AntdRegistry>
+        <ConfigProvider
+          locale={zhCN}
+          theme={{
+            token: {
+              colorPrimary: '#8B5CF6',
+            },
+          }}
+        >
           {children}
         </ConfigProvider>
-      </body>
-    </html>
-  )
-}
+      </AntdRegistry>
+    </body>
+  </html>
+);
+
+export default RootLayout;
