@@ -1,33 +1,46 @@
-import { DataTypes, Model, Optional } from 'sequelize'
-import sequelize from '../lib/database'
-import User from './User'
+import { DataTypes, Model, Optional } from 'sequelize';
+import sequelize from '../lib/database';
+import User from './User';
 
 interface SubAccountAttributes {
-  id: number
-  parentUserId: number
-  username: string
-  password: string
-  salt?: string
-  role?: string
-  status?: string
-  lastLoginTime?: Date
-  createdTime: Date
-  updatedTime: Date
+  id: number;
+  parentUserId: number;
+  username: string;
+  password: string;
+  salt?: string;
+  role?: string;
+  status?: string;
+  lastLoginTime?: Date;
+  createdTime: Date;
+  updatedTime: Date;
 }
 
-interface SubAccountCreationAttributes extends Optional<SubAccountAttributes, 'id' | 'salt' | 'role' | 'status' | 'lastLoginTime' | 'createdTime' | 'updatedTime'> {}
+interface SubAccountCreationAttributes
+  extends Optional<
+    SubAccountAttributes,
+    | 'id'
+    | 'salt'
+    | 'role'
+    | 'status'
+    | 'lastLoginTime'
+    | 'createdTime'
+    | 'updatedTime'
+  > {}
 
-class SubAccount extends Model<SubAccountAttributes, SubAccountCreationAttributes> implements SubAccountAttributes {
-  public id!: number
-  public parentUserId!: number
-  public username!: string
-  public password!: string
-  public salt?: string
-  public role?: string
-  public status?: string
-  public lastLoginTime?: Date
-  public createdTime!: Date
-  public updatedTime!: Date
+class SubAccount
+  extends Model<SubAccountAttributes, SubAccountCreationAttributes>
+  implements SubAccountAttributes
+{
+  public id!: number;
+  public parentUserId!: number;
+  public username!: string;
+  public password!: string;
+  public salt?: string;
+  public role?: string;
+  public status?: string;
+  public lastLoginTime?: Date;
+  public createdTime!: Date;
+  public updatedTime!: Date;
 }
 
 SubAccount.init(
@@ -90,8 +103,8 @@ SubAccount.init(
     createdAt: 'createdTime',
     updatedAt: 'updatedTime',
   }
-)
+);
 
 // 关联关系在 models/index.ts 中定义
 
-export default SubAccount
+export default SubAccount;

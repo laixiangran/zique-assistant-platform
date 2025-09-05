@@ -1,36 +1,43 @@
-import { DataTypes, Model, Optional } from 'sequelize'
-import sequelize from '../lib/database'
-import User from './User'
-import Invitation from './Invitation'
+import { DataTypes, Model, Optional } from 'sequelize';
+import sequelize from '../lib/database';
+import User from './User';
+import Invitation from './Invitation';
 
 interface InvitationRewardAttributes {
-  id: number
-  inviterId: number
-  invitationId: number
-  rewardType: 'free_shops' | 'discount' | 'cash' | 'points'
-  rewardValue: number
-  rewardDescription: string
-  status: 'pending' | 'granted' | 'expired'
-  grantedAt?: Date
-  expiresAt?: Date
-  createdAt: Date
-  updatedAt: Date
+  id: number;
+  inviterId: number;
+  invitationId: number;
+  rewardType: 'free_shops' | 'discount' | 'cash' | 'points';
+  rewardValue: number;
+  rewardDescription: string;
+  status: 'pending' | 'granted' | 'expired';
+  grantedAt?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-interface InvitationRewardCreationAttributes extends Optional<InvitationRewardAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+interface InvitationRewardCreationAttributes
+  extends Optional<
+    InvitationRewardAttributes,
+    'id' | 'createdAt' | 'updatedAt'
+  > {}
 
-class InvitationReward extends Model<InvitationRewardAttributes, InvitationRewardCreationAttributes> implements InvitationRewardAttributes {
-  public id!: number
-  public inviterId!: number
-  public invitationId!: number
-  public rewardType!: 'free_shops' | 'discount' | 'cash' | 'points'
-  public rewardValue!: number
-  public rewardDescription!: string
-  public status!: 'pending' | 'granted' | 'expired'
-  public grantedAt?: Date
-  public expiresAt?: Date
-  public createdAt!: Date
-  public updatedAt!: Date
+class InvitationReward
+  extends Model<InvitationRewardAttributes, InvitationRewardCreationAttributes>
+  implements InvitationRewardAttributes
+{
+  public id!: number;
+  public inviterId!: number;
+  public invitationId!: number;
+  public rewardType!: 'free_shops' | 'discount' | 'cash' | 'points';
+  public rewardValue!: number;
+  public rewardDescription!: string;
+  public status!: 'pending' | 'granted' | 'expired';
+  public grantedAt?: Date;
+  public expiresAt?: Date;
+  public createdAt!: Date;
+  public updatedAt!: Date;
 }
 
 InvitationReward.init(
@@ -113,27 +120,27 @@ InvitationReward.init(
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
   }
-)
+);
 
 // 定义关联关系
 InvitationReward.belongsTo(User, {
   foreignKey: 'inviterId',
   as: 'inviter',
-})
+});
 
 InvitationReward.belongsTo(Invitation, {
   foreignKey: 'invitationId',
   as: 'invitation',
-})
+});
 
 User.hasMany(InvitationReward, {
   foreignKey: 'inviterId',
   as: 'invitationRewards',
-})
+});
 
 Invitation.hasMany(InvitationReward, {
   foreignKey: 'invitationId',
   as: 'rewards',
-})
+});
 
-export default InvitationReward
+export default InvitationReward;

@@ -1,38 +1,59 @@
-import { DataTypes, Model, Optional } from 'sequelize'
-import sequelize from '../lib/database'
+import { DataTypes, Model, Optional } from 'sequelize';
+import sequelize from '../lib/database';
 
 interface MembershipPackageAttributes {
-  id: number
-  packageName: string
-  packageDesc?: string
-  packageType?: string
-  originalPrice?: number
-  durationMonths?: number
-  maxBindMall?: number
-  discountPercent?: number
-  discountStartTime?: Date
-  discountEndTime?: Date
-  isActive?: boolean
-  createdTime: Date
-  updatedTime: Date
+  id: number;
+  packageName: string;
+  packageDesc?: string;
+  packageType?: string;
+  originalPrice?: number;
+  durationMonths?: number;
+  maxBindMall?: number;
+  discountPercent?: number;
+  discountStartTime?: Date;
+  discountEndTime?: Date;
+  isActive?: boolean;
+  createdTime: Date;
+  updatedTime: Date;
 }
 
-interface MembershipPackageCreationAttributes extends Optional<MembershipPackageAttributes, 'id' | 'packageDesc' | 'packageType' | 'originalPrice' | 'durationMonths' | 'maxBindMall' | 'discountPercent' | 'discountStartTime' | 'discountEndTime' | 'isActive' | 'createdTime' | 'updatedTime'> {}
+interface MembershipPackageCreationAttributes
+  extends Optional<
+    MembershipPackageAttributes,
+    | 'id'
+    | 'packageDesc'
+    | 'packageType'
+    | 'originalPrice'
+    | 'durationMonths'
+    | 'maxBindMall'
+    | 'discountPercent'
+    | 'discountStartTime'
+    | 'discountEndTime'
+    | 'isActive'
+    | 'createdTime'
+    | 'updatedTime'
+  > {}
 
-class MembershipPackage extends Model<MembershipPackageAttributes, MembershipPackageCreationAttributes> implements MembershipPackageAttributes {
-  public id!: number
-  public packageName!: string
-  public packageDesc?: string
-  public packageType?: string
-  public originalPrice?: number
-  public durationMonths?: number
-  public maxBindMall?: number
-  public discountPercent?: number
-  public discountStartTime?: Date
-  public discountEndTime?: Date
-  public isActive?: boolean
-  public createdTime!: Date
-  public updatedTime!: Date
+class MembershipPackage
+  extends Model<
+    MembershipPackageAttributes,
+    MembershipPackageCreationAttributes
+  >
+  implements MembershipPackageAttributes
+{
+  public id!: number;
+  public packageName!: string;
+  public packageDesc?: string;
+  public packageType?: string;
+  public originalPrice?: number;
+  public durationMonths?: number;
+  public maxBindMall?: number;
+  public discountPercent?: number;
+  public discountStartTime?: Date;
+  public discountEndTime?: Date;
+  public isActive?: boolean;
+  public createdTime!: Date;
+  public updatedTime!: Date;
 }
 
 MembershipPackage.init(
@@ -110,6 +131,6 @@ MembershipPackage.init(
     createdAt: 'createdTime',
     updatedAt: 'updatedTime',
   }
-)
+);
 
-export default MembershipPackage
+export default MembershipPackage;

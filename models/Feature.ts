@@ -1,26 +1,33 @@
-import { DataTypes, Model, Optional } from 'sequelize'
-import sequelize from '../lib/database'
+import { DataTypes, Model, Optional } from 'sequelize';
+import sequelize from '../lib/database';
 
 interface FeatureAttributes {
-  id: number
-  featureCode: string
-  featureName: string
-  featureType?: 'data' | 'tool' | 'custom'
-  description?: string
-  createdTime: Date
-  updatedTime: Date
+  id: number;
+  featureCode: string;
+  featureName: string;
+  featureType?: 'data' | 'tool' | 'custom';
+  description?: string;
+  createdTime: Date;
+  updatedTime: Date;
 }
 
-interface FeatureCreationAttributes extends Optional<FeatureAttributes, 'id' | 'featureType' | 'description' | 'createdTime' | 'updatedTime'> {}
+interface FeatureCreationAttributes
+  extends Optional<
+    FeatureAttributes,
+    'id' | 'featureType' | 'description' | 'createdTime' | 'updatedTime'
+  > {}
 
-class Feature extends Model<FeatureAttributes, FeatureCreationAttributes> implements FeatureAttributes {
-  public id!: number
-  public featureCode!: string
-  public featureName!: string
-  public featureType?: 'data' | 'tool' | 'custom'
-  public description?: string
-  public createdTime!: Date
-  public updatedTime!: Date
+class Feature
+  extends Model<FeatureAttributes, FeatureCreationAttributes>
+  implements FeatureAttributes
+{
+  public id!: number;
+  public featureCode!: string;
+  public featureName!: string;
+  public featureType?: 'data' | 'tool' | 'custom';
+  public description?: string;
+  public createdTime!: Date;
+  public updatedTime!: Date;
 }
 
 Feature.init(
@@ -68,6 +75,6 @@ Feature.init(
     createdAt: 'createdTime',
     updatedAt: 'updatedTime',
   }
-)
+);
 
-export default Feature
+export default Feature;

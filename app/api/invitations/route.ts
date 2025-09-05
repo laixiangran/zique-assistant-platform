@@ -1,53 +1,62 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { Invitation, InvitationReward, User, UserOperationLog } from '@/models'
-import { verifyToken, successResponse, errorResponse, getClientIP } from '@/lib/utils'
-import { Op } from 'sequelize'
+import { NextRequest, NextResponse } from 'next/server';
+import { Invitation, InvitationReward, User, UserOperationLog } from '@/models';
+import {
+  verifyToken,
+  successResponse,
+  errorResponse,
+  getClientIP,
+} from '@/lib/utils';
+import { Op } from 'sequelize';
 
 // 获取邀请记录
 export async function GET(request: NextRequest) {
   try {
     // 获取token
-    const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.replace('Bearer ', '')
+    const token =
+      request.cookies.get('token')?.value ||
+      request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 })
+      return NextResponse.json(errorResponse('未登录'), { status: 401 });
     }
 
     // 验证token
-    const decoded = verifyToken(token) as any
+    const decoded = verifyToken(token) as any;
     if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 })
+      return NextResponse.json(errorResponse('token无效'), { status: 401 });
     }
 
     // 只有主账户可以查看邀请记录
     if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以查看邀请记录'), { status: 403 })
+      return NextResponse.json(errorResponse('只有主账户可以查看邀请记录'), {
+        status: 403,
+      });
     }
 
-    const userId = decoded.userId
+    const userId = decoded.userId;
 
     // 获取查询参数
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const status = searchParams.get('status')
-    const type = searchParams.get('type') // 'sent' | 'received'
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const status = searchParams.get('status');
+    const type = searchParams.get('type'); // 'sent' | 'received'
 
-    let where: any = {}
-    
+    let where: any = {};
+
     if (type === 'sent') {
       // 我发出的邀请
-      where.inviter_id = userId
+      where.inviter_id = userId;
     } else if (type === 'received') {
       // 我收到的邀请（实际上是我通过别人的邀请码注册）
-      where.invitee_id = userId
+      where.invitee_id = userId;
     } else {
       // 默认显示我发出的邀请
-      where.inviter_id = userId
+      where.inviter_id = userId;
     }
 
     if (status) {
-      where.status = status
+      where.status = status;
     }
 
     // 查询邀请记录
@@ -68,7 +77,7 @@ export async function GET(request: NextRequest) {
       limit,
       offset: (page - 1) * limit,
       order: [['created_at', 'DESC']],
-    })
+    });
 
     return NextResponse.json(
       successResponse(
@@ -83,10 +92,12 @@ export async function GET(request: NextRequest) {
         },
         '获取邀请记录成功'
       )
-    )
+    );
   } catch (error) {
-    console.error('获取邀请记录失败:', error)
-    return NextResponse.json(errorResponse('获取邀请记录失败，请稍后重试'), { status: 500 })
+    console.error('获取邀请记录失败:', error);
+    return NextResponse.json(errorResponse('获取邀请记录失败，请稍后重试'), {
+      status: 500,
+    });
   }
 }
 
@@ -94,34 +105,40 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 获取token
-    const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.replace('Bearer ', '')
+    const token =
+      request.cookies.get('token')?.value ||
+      request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 })
+      return NextResponse.json(errorResponse('未登录'), { status: 401 });
     }
 
     // 验证token
-    const decoded = verifyToken(token) as any
+    const decoded = verifyToken(token) as any;
     if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 })
+      return NextResponse.json(errorResponse('token无效'), { status: 401 });
     }
 
     // 只有主账户可以生成邀请链接
     if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以生成邀请链接'), { status: 403 })
+      return NextResponse.json(errorResponse('只有主账户可以生成邀请链接'), {
+        status: 403,
+      });
     }
 
-    const userId = decoded.userId
+    const userId = decoded.userId;
 
     // 获取用户信息
-    const user = await User.findByPk(userId)
+    const user = await User.findByPk(userId);
     if (!user) {
-      return NextResponse.json(errorResponse('用户不存在'), { status: 404 })
+      return NextResponse.json(errorResponse('用户不存在'), { status: 404 });
     }
 
     // 生成邀请链接（使用用户的邀请码）
-    const invitationCode = (user as any).invitation_code
-    const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login?invitation_code=${invitationCode}`
+    const invitationCode = (user as any).invitation_code;
+    const invitationLink = `${
+      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    }/login?invitation_code=${invitationCode}`;
 
     // 记录操作日志
     await UserOperationLog.create({
@@ -134,7 +151,7 @@ export async function POST(request: NextRequest) {
       ip_address: getClientIP(request),
       user_agent: request.headers.get('user-agent') || '',
       status: 'success',
-    } as any)
+    } as any);
 
     return NextResponse.json(
       successResponse(
@@ -144,9 +161,11 @@ export async function POST(request: NextRequest) {
         },
         '邀请链接生成成功'
       )
-    )
+    );
   } catch (error) {
-    console.error('生成邀请链接失败:', error)
-    return NextResponse.json(errorResponse('生成邀请链接失败，请稍后重试'), { status: 500 })
+    console.error('生成邀请链接失败:', error);
+    return NextResponse.json(errorResponse('生成邀请链接失败，请稍后重试'), {
+      status: 500,
+    });
   }
 }
