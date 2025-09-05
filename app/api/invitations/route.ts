@@ -1,39 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Invitation, InvitationReward, User, UserOperationLog } from '@/models';
-import {
-  verifyToken,
-  successResponse,
-  errorResponse,
-  getClientIP,
-} from '@/lib/utils';
+import { NextRequest, NextResponse } from 'next/server'
+import { Invitation, InvitationReward, User, UserOperationLog } from '@/models'
+import { authenticateMainAccount, successResponse, errorResponse, getClientIP } from '@/lib/utils'
 import { Op } from 'sequelize';
 
 // 获取邀请记录
 export async function GET(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证（需要主账户权限）
+    const authResult = authenticateMainAccount(request);
+    if (!authResult.success) {
+      return authResult.response!;
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以查看邀请记录
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以查看邀请记录'), {
-        status: 403,
-      });
-    }
-
-    const userId = decoded.userId;
+    const userId = authResult.user!.userId;
 
     // 获取查询参数
     const { searchParams } = new URL(request.url);
@@ -104,29 +83,13 @@ export async function GET(request: NextRequest) {
 // 生成邀请链接
 export async function POST(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证（需要主账户权限）
+    const authResult = authenticateMainAccount(request);
+    if (!authResult.success) {
+      return authResult.response!;
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以生成邀请链接
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以生成邀请链接'), {
-        status: 403,
-      });
-    }
-
-    const userId = decoded.userId;
+    const userId = authResult.user!.userId;
 
     // 获取用户信息
     const user = await User.findByPk(userId);

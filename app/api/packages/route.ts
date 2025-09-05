@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MembershipPackage } from '@/models';
 import {
-  verifyToken,
+  authenticateRequest,
   successResponse,
   errorResponse,
   formatObjectDates,
@@ -49,20 +49,13 @@ export async function GET(request: NextRequest) {
 // 创建会员套餐（管理员功能）
 export async function POST(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证
+    const authResult = await authenticateRequest(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), { status: 401 });
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
+    const decoded = authResult.user!;
 
     // 这里应该检查用户是否为管理员，暂时跳过
     // if (decoded.role !== 'admin') {

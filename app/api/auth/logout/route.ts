@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserOperationLog } from '@/models';
 import {
-  verifyToken,
+  authenticateRequest,
   successResponse,
   errorResponse,
   getClientIP,
@@ -14,29 +14,25 @@ export async function POST(request: NextRequest) {
       request.cookies.get('token')?.value ||
       request.headers.get('authorization')?.replace('Bearer ', '');
 
-    if (token) {
+    // 尝试验证token并记录登出日志（即使token无效也允许登出）
+    const authResult = await authenticateRequest(request);
+    if (authResult.success && authResult.user) {
+      const decoded = authResult.user;
       try {
-        // 验证token并获取用户信息
-        const decoded = verifyToken(token) as any;
-
-        if (decoded) {
-          // 记录登出日志
-          await UserOperationLog.create({
-            userId:
-              decoded.type === 'user' ? decoded.userId : decoded.parentUserId,
-            operationType:
-              decoded.type === 'user' ? 'logout' : 'sub_account_logout',
-            operationDesc:
-              decoded.type === 'user'
-                ? '用户登出'
-                : `子账户登出 (${decoded.username})`,
-            ipAddress: getClientIP(request),
-            userAgent: request.headers.get('user-agent') || '',
-          });
-        }
+        // 记录登出日志
+        await UserOperationLog.create({
+          userId: decoded.userId,
+          operationType:
+            decoded.type === 'user' ? 'logout' : 'sub_account_logout',
+          operationDesc:
+            decoded.type === 'user'
+              ? '用户登出'
+              : `子账户登出 (${decoded.username})`,
+          ipAddress: getClientIP(request),
+          userAgent: request.headers.get('user-agent') || '',
+        });
       } catch (error) {
-        // token无效，但仍然清除cookie
-        console.log('登出时token验证失败:', error);
+        console.log('记录登出日志失败:', error);
       }
     }
 

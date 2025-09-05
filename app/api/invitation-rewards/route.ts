@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { InvitationReward, User, UserOperationLog } from '@/models';
 import {
-  verifyToken,
+  authenticateMainAccount,
   successResponse,
   errorResponse,
   getClientIP,
@@ -10,30 +10,15 @@ import {
 // 获取邀请奖励记录
 export async function GET(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证（仅主账户）
+    const authResult = await authenticateMainAccount(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error || ''), {
+        status: authResult.error === '只有主账户可以访问此接口' ? 403 : 401,
+      });
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以查看邀请奖励记录
-    if (decoded.type !== 'user') {
-      return NextResponse.json(
-        errorResponse('只有主账户可以查看邀请奖励记录'),
-        { status: 403 }
-      );
-    }
-
-    const userId = decoded.userId;
+    const userId = authResult.user?.userId;
 
     // 获取查询参数
     const { searchParams } = new URL(request.url);
@@ -106,29 +91,15 @@ export async function GET(request: NextRequest) {
 // 领取邀请奖励
 export async function POST(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
-    }
-
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以领取邀请奖励
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以领取邀请奖励'), {
-        status: 403,
+    // 统一身份验证（仅主账户）
+    const authResult = await authenticateMainAccount(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: authResult.error === '只有主账户可以访问此接口' ? 403 : 401,
       });
     }
 
-    const userId = decoded.userId;
+    const userId = authResult.user?.userId!;
     const body = await request.json();
     const { reward_id } = body;
 
@@ -140,7 +111,7 @@ export async function POST(request: NextRequest) {
     const reward = await InvitationReward.findOne({
       where: {
         id: reward_id,
-        user_id: userId,
+        userId,
         status: 'pending',
       } as any,
     });

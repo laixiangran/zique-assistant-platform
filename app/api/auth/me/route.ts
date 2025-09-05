@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { User, SubAccount } from '@/models';
 import {
-  verifyToken,
+  authenticateRequest,
   successResponse,
   errorResponse,
   formatObjectDates,
@@ -9,20 +9,13 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证
+    const authResult = authenticateRequest(request);
+    if (!authResult.success) {
+      return authResult.response!;
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
+    const decoded = authResult.user!;
 
     let userInfo: any = null;
 

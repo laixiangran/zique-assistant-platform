@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserOperationLog, User } from '@/models';
 import {
-  verifyToken,
+  authenticateRequest,
+  authenticateMainAccount,
   successResponse,
   errorResponse,
   formatObjectDates,
@@ -11,21 +12,15 @@ import { Op } from 'sequelize';
 // 获取用户操作日志
 export async function GET(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证
+    const authResult = await authenticateRequest(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: 401,
+      });
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
+    const decoded = authResult.user!;
     const userId = decoded.userId;
     const userType = decoded.type;
 
@@ -177,29 +172,15 @@ export async function GET(request: NextRequest) {
 // 清理操作日志（仅管理员）
 export async function DELETE(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
-    }
-
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以清理操作日志
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以清理操作日志'), {
-        status: 403,
+    // 统一身份验证（仅主账户）
+    const authResult = await authenticateMainAccount(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: authResult.error === '只有主账户可以访问此接口' ? 403 : 401,
       });
     }
 
-    const userId = decoded.userId;
+    const userId = authResult.user?.userId!;
     const body = await request.json();
     const { days = 30 } = body; // 默认清理30天前的日志
 

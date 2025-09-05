@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -46,6 +46,67 @@ export function getUserFromRequest(request: NextRequest): JWTPayload | null {
   if (!token) return null;
 
   return verifyToken(token);
+}
+
+// 统一身份验证中间件
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  user?: JWTPayload;
+  response?: NextResponse;
+}
+
+export function authenticateRequest(request: NextRequest): AuthResult {
+  // 获取token
+  const token =
+    request.cookies.get('token')?.value ||
+    request.headers.get('authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return {
+      success: false,
+      response: NextResponse.json(errorResponse('未登录'), { status: 401 }),
+    };
+  }
+
+  // 验证token
+  const decoded = verifyToken(token) as JWTPayload;
+  if (!decoded) {
+    return {
+      success: false,
+      response: NextResponse.json(errorResponse('token无效'), { status: 401 }),
+    };
+  }
+
+  return {
+    success: true,
+    user: decoded,
+  };
+}
+
+// 需要主账户权限的验证
+export function authenticateMainAccount(request: NextRequest): AuthResult {
+  const authResult = authenticateRequest(request);
+
+  if (!authResult.success) {
+    return authResult;
+  }
+
+  if (authResult.user!.type !== 'user') {
+    return {
+      success: false,
+      response: NextResponse.json(errorResponse('只有主账户可以执行此操作'), {
+        status: 403,
+      }),
+    };
+  }
+
+  return authResult;
+}
+
+// 获取用户ID（主账户返回自己的ID，子账户返回父账户ID）
+export function getUserId(user: JWTPayload): number {
+  return user.type === 'user' ? user.userId : (user as any).parentUserId;
 }
 
 // 密码相关函数

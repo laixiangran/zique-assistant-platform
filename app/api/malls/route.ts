@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserMallBinding, User, UserOperationLog } from '@/models';
 import {
-  verifyToken,
+  authenticateRequest,
   successResponse,
   errorResponse,
   getClientIP,
@@ -11,23 +11,15 @@ import {
 // 获取用户店铺列表
 export async function GET(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证
+    const authResult = await authenticateRequest(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: 401,
+      });
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    const userId =
-      decoded.type === 'user' ? decoded.userId : decoded.parentUserId;
+    const userId = authResult.user?.userId;
 
     // 获取查询参数
     const { searchParams } = new URL(request.url);
@@ -74,23 +66,15 @@ export async function GET(request: NextRequest) {
 // 绑定新店铺
 export async function POST(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证
+    const authResult = await authenticateRequest(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: 401,
+      });
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    const userId =
-      decoded.type === 'user' ? decoded.userId : decoded.parentUserId;
+    const userId = authResult.user?.userId!;
 
     // TODO: 查询已绑定的店铺数是否超过限制（从套餐和邀请奖励中统计总共可绑定的店铺数）
     // 查询当前用户已绑定的店铺数
@@ -159,23 +143,15 @@ export async function POST(request: NextRequest) {
 // 删除店铺绑定
 export async function DELETE(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证
+    const authResult = await authenticateRequest(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: 401,
+      });
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    const userId =
-      decoded.type === 'user' ? decoded.userId : decoded.parentUserId;
+    const userId = authResult.user?.userId!;
 
     // 获取要删除的店铺ID
     const { searchParams } = new URL(request.url);
