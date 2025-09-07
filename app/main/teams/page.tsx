@@ -13,15 +13,13 @@ import {
   Select,
   message,
   Popconfirm,
-  Transfer,
-  Row,
-  Col,
 } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined,
   UserOutlined,
   PlusOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { subAccountsAPI, mallsAPI } from '../../services';
 
@@ -37,7 +35,7 @@ export default function SubAccountsPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [form] = Form.useForm();
-  const [targetKeys, setTargetKeys] = useState<string[]>([]);
+  const [searchForm] = Form.useForm();
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -48,15 +46,20 @@ export default function SubAccountsPage() {
     active: 0,
     inactive: 0,
   });
+  const [searchUsername, setSearchUsername] = useState<string>('');
 
   // 获取子账户列表
-  const fetchSubAccounts = async (page = 1, pageSize = 10) => {
+  const fetchSubAccounts = async (page = 1, pageSize = 10, username = '') => {
     setLoading(true);
     try {
-      const response = await subAccountsAPI.getSubAccounts({
+      const params: any = {
         page,
         pageSize,
-      });
+      };
+      if (username.trim()) {
+        params.search = username.trim();
+      }
+      const response = await subAccountsAPI.getSubAccounts(params);
       const data = response.data;
 
       if (data.success) {
@@ -108,19 +111,22 @@ export default function SubAccountsPage() {
   // 提交表单
   const handleSubmit = async (values: any) => {
     try {
-      const submitData = {
-        ...values,
-        responsibleMalls: targetKeys.map((key) => parseInt(key)),
+      const { confirmPassword, ...submitData } = values;
+      const requestData = {
+        ...submitData,
+        responsibleMalls: (values.responsibleMalls || []).map((key: string) =>
+          parseInt(key)
+        ),
       };
 
       let response;
       if (editingAccount) {
         response = await subAccountsAPI.updateSubAccount(
           editingAccount.id.toString(),
-          submitData
+          requestData
         );
       } else {
-        response = await subAccountsAPI.createSubAccount(submitData);
+        response = await subAccountsAPI.createSubAccount(requestData);
       }
 
       const data = response.data;
@@ -129,8 +135,11 @@ export default function SubAccountsPage() {
         setModalVisible(false);
         setEditingAccount(null);
         form.resetFields();
-        setTargetKeys([]);
-        fetchSubAccounts(pagination.current, pagination.pageSize);
+        fetchSubAccounts(
+          pagination.current,
+          pagination.pageSize,
+          searchUsername
+        );
       } else {
         message.error(data.message || '操作失败');
       }
@@ -147,13 +156,18 @@ export default function SubAccountsPage() {
   // 编辑子账户
   const handleEdit = (record: any) => {
     setEditingAccount(record);
+    // 设置负责店铺的回显
+    const mallIds = (record.responsibleMalls || []).map((mall: any) => {
+      // 如果是对象格式，取mallId；如果是直接的ID，直接使用
+      return typeof mall === 'object'
+        ? mall.mallId?.toString()
+        : mall.toString();
+    });
     form.setFieldsValue({
       username: record.username,
       status: record.status,
+      responsibleMalls: mallIds,
     });
-    setTargetKeys(
-      (record.responsibleMalls || []).map((id: any) => id.toString())
-    );
     setModalVisible(true);
   };
 
@@ -164,7 +178,11 @@ export default function SubAccountsPage() {
       const data = response.data;
       if (data.success) {
         message.success('子账户删除成功');
-        fetchSubAccounts(pagination.current, pagination.pageSize);
+        fetchSubAccounts(
+          pagination.current,
+          pagination.pageSize,
+          searchUsername
+        );
       } else {
         message.error(data.message || '删除失败');
       }
@@ -184,15 +202,10 @@ export default function SubAccountsPage() {
       title: '用户名',
       dataIndex: 'username',
       key: 'username',
-      render: (text: string) => (
-        <Space>
-          <UserOutlined style={{ color: '#1890ff' }} />
-          <span style={{ fontWeight: 500 }}>{text}</span>
-        </Space>
-      ),
+      render: (text: string) => <span style={{ fontWeight: 500 }}>{text}</span>,
     },
     {
-      title: '管理的店铺',
+      title: '管理店铺',
       dataIndex: 'responsibleMalls',
       key: 'responsibleMalls',
       render: (malls: any[]) => {
@@ -254,8 +267,22 @@ export default function SubAccountsPage() {
     title: mall.mallName,
   }));
 
+  // 搜索处理
+  const handleSearch = (values: any) => {
+    const username = values?.username || '';
+    setSearchUsername(username);
+    fetchSubAccounts(1, pagination.pageSize, username);
+  };
+
+  // 重置搜索
+  const handleReset = () => {
+    searchForm.resetFields();
+    setSearchUsername('');
+    fetchSubAccounts(1, pagination.pageSize, '');
+  };
+
   useEffect(() => {
-    fetchSubAccounts();
+    fetchSubAccounts(1, 10, '');
     fetchMalls();
   }, []);
 
@@ -263,13 +290,30 @@ export default function SubAccountsPage() {
     <>
       <Card>
         <div style={{ marginBottom: 16 }}>
+          <Form
+            form={searchForm}
+            layout='inline'
+            onFinish={handleSearch}
+            style={{ marginBottom: 16 }}
+          >
+            <Form.Item name='username' label='用户名'>
+              <Input placeholder='请输入用户名' style={{ width: 200 }} />
+            </Form.Item>
+            <Form.Item>
+              <Space>
+                <Button type='primary' htmlType='submit'>
+                  查询
+                </Button>
+                <Button onClick={handleReset}>重置</Button>
+              </Space>
+            </Form.Item>
+          </Form>
           <Button
             type='primary'
             icon={<PlusOutlined />}
             onClick={() => {
               setEditingAccount(null);
               form.resetFields();
-              setTargetKeys([]);
               setModalVisible(true);
             }}
           >
@@ -288,7 +332,7 @@ export default function SubAccountsPage() {
             showTotal: (total, range) =>
               `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
             onChange: (page, pageSize) => {
-              fetchSubAccounts(page, pageSize);
+              fetchSubAccounts(page, pageSize, searchUsername);
             },
           }}
         />
@@ -300,56 +344,82 @@ export default function SubAccountsPage() {
           setModalVisible(false);
           setEditingAccount(null);
           form.resetFields();
-          setTargetKeys([]);
         }}
         footer={null}
         width={800}
         destroyOnHidden
       >
         <Form form={form} layout='vertical' onFinish={handleSubmit}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label='用户名'
-                name='username'
-                rules={[
-                  { required: true, message: '请输入用户名' },
-                  { min: 3, max: 20, message: '用户名长度应在3-20个字符之间' },
-                  {
-                    pattern: /^[a-zA-Z0-9_]+$/,
-                    message: '用户名只能包含字母、数字和下划线',
-                  },
-                ]}
-              >
-                <Input placeholder='请输入用户名' />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label='密码'
-                name='password'
-                rules={[
-                  { required: !editingAccount, message: '请输入密码' },
-                  { min: 6, max: 20, message: '密码长度应在6-20个字符之间' },
-                ]}
-              >
-                <Input.Password
-                  placeholder={
-                    editingAccount ? '留空则不修改密码' : '请输入密码'
-                  }
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            label='用户名'
+            name='username'
+            rules={[
+              { required: true, message: '请输入用户名' },
+              { min: 3, max: 20, message: '用户名长度应在3-20个字符之间' },
+              {
+                pattern: /^[a-zA-Z0-9_]+$/,
+                message: '用户名只能包含字母、数字和下划线',
+              },
+            ]}
+          >
+            <Input placeholder='请输入用户名' />
+          </Form.Item>
 
-          <Form.Item label='负责店铺'>
-            <Transfer
-              dataSource={transferDataSource}
-              targetKeys={targetKeys}
-              onChange={(keys) => setTargetKeys(keys as string[])}
-              render={(item) => item.title}
-              titles={['可选店铺', '负责店铺']}
-              style={{ marginBottom: 16 }}
+          <Form.Item
+            label='密码'
+            name='password'
+            rules={[
+              { required: !editingAccount, message: '请输入密码' },
+              { min: 6, max: 20, message: '密码长度应在6-20个字符之间' },
+            ]}
+          >
+            <Input.Password
+              placeholder={editingAccount ? '留空则不修改密码' : '请输入密码'}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label='确认密码'
+            name='confirmPassword'
+            dependencies={['password']}
+            rules={[
+              {
+                required: !editingAccount,
+                message: '请确认密码',
+              },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('两次输入的密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password
+              placeholder={editingAccount ? '留空则不修改密码' : '请确认密码'}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label='负责店铺'
+            name='responsibleMalls'
+            rules={[
+              {
+                required: true,
+                message: '请至少选择一个负责店铺',
+              },
+            ]}
+          >
+            <Select
+              mode='multiple'
+              placeholder='请选择负责店铺'
+              style={{ width: '100%' }}
+              options={transferDataSource.map((item) => ({
+                label: item.title,
+                value: item.key,
+              }))}
             />
           </Form.Item>
 
@@ -372,7 +442,6 @@ export default function SubAccountsPage() {
                   setModalVisible(false);
                   setEditingAccount(null);
                   form.resetFields();
-                  setTargetKeys([]);
                 }}
               >
                 取消

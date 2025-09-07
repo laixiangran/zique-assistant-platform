@@ -198,7 +198,7 @@ export default function MallsPage() {
             <Form.Item>
               <Space>
                 <Button type='primary' htmlType='submit'>
-                  搜索
+                  查询
                 </Button>
                 <Button onClick={handleReset}>重置</Button>
               </Space>

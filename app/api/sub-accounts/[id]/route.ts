@@ -37,14 +37,14 @@ export async function GET(
       });
     }
 
-    const userId = decoded.userId;
+    const mainAccountUserId = decoded.userId;
     const subAccountId = params.id;
 
     // 查询子账户
     const subAccount = await SubAccount.findOne({
       where: {
         id: subAccountId,
-        parentUserId: userId,
+        parentUserId: mainAccountUserId,
       },
       attributes: {
         exclude: ['password'],
@@ -106,7 +106,7 @@ export async function PUT(
       });
     }
 
-    const userId = decoded.userId;
+    const mainAccountUserId = decoded.userId;
     const subAccountId = params.id;
 
     // 验证子账户ID格式
@@ -172,7 +172,7 @@ export async function PUT(
     const subAccount = await SubAccount.findOne({
       where: {
         id: subAccountId,
-        parentUserId: userId,
+        parentUserId: mainAccountUserId,
       },
     });
 
@@ -264,7 +264,7 @@ export async function PUT(
         // 获取主账户的店铺绑定信息
         const parentMallBindings = await UserMallBinding.findAll({
           where: {
-            userId: userId,
+            userId: mainAccountUserId,
             mallId: responsibleMalls,
           },
         });
@@ -284,7 +284,7 @@ export async function PUT(
 
     // 记录操作日志
     await UserOperationLog.create({
-      userId: userId,
+      userId: mainAccountUserId,
       operationType: 'sub_account_update',
       operationDesc: `更新子账户：${(subAccount as any).username}`,
       targetType: 'sub_account',
@@ -353,7 +353,7 @@ export async function DELETE(
       });
     }
 
-    const userId = decoded.userId;
+    const mainAccountUserId = decoded.userId;
     const subAccountId = params.id;
 
     // 验证子账户ID格式
@@ -371,7 +371,7 @@ export async function DELETE(
     const subAccount = await SubAccount.findOne({
       where: {
         id: subAccountId,
-        parentUserId: userId,
+        parentUserId: mainAccountUserId,
       },
     });
 
@@ -393,7 +393,7 @@ export async function DELETE(
 
     // 记录操作日志
     await UserOperationLog.create({
-      userId: userId,
+      userId: mainAccountUserId,
       operationType: 'sub_account_delete',
       operationDesc: `删除子账户：${username}`,
       targetType: 'sub_account',

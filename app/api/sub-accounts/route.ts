@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const userId = decoded.userId;
+    const mainAccountUserId = decoded.userId;
 
     // 获取查询参数
     const { searchParams } = new URL(request.url);
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
 
     // 构建查询条件
-    const where: any = { parentUserId: userId };
+    const where: any = { parentUserId: mainAccountUserId };
     if (status && status !== 'all') where.status = status;
     if (search) {
       where[require('sequelize').Op.or] = [
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const userId = authResult.user?.userId;
+    const mainAccountUserId = authResult.user?.userId;
 
     // 解析请求体
     let body;
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
 
     // 创建子账户
     const subAccount = await SubAccount.create({
-      parentUserId: userId,
+      parentUserId: mainAccountUserId,
       username,
       password: hashedPassword,
       status,
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
       // 获取主账户的店铺绑定信息
       const parentMallBindings = await UserMallBinding.findAll({
         where: {
-          userId: userId,
+          userId: mainAccountUserId,
           mallId: responsibleMalls,
         },
       });
@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
 
     // 记录操作日志
     await UserOperationLog.create({
-      userId: userId,
+      userId: mainAccountUserId,
       operationType: 'sub_account_create',
       operationDesc: `创建子账户：${username}`,
       targetType: 'sub_account',
