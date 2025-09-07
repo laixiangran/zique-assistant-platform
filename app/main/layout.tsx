@@ -3,7 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Layout, Menu, Avatar, Dropdown, Button, message, Tag } from 'antd';
+import {
+  Layout,
+  Menu,
+  Avatar,
+  Dropdown,
+  Button,
+  message,
+  Tag,
+  Modal,
+  Descriptions,
+} from 'antd';
 import {
   ShopOutlined,
   UserOutlined,
@@ -14,9 +24,10 @@ import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
   DashboardOutlined,
+  CrownOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { authAPI } from '../services';
+import { authAPI, userPackagesAPI } from '../services';
 import logo from '../../public/logo.png';
 
 const { Header, Sider, Content } = Layout;
@@ -39,6 +50,8 @@ export default function mainLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userPackage, setUserPackage] = useState<any>({});
+  const [packageModalVisible, setPackageModalVisible] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -59,24 +72,66 @@ export default function mainLayout({
     try {
       const response = await authAPI.getCurrentUser();
       setUserInfo(response.data.data);
+      // 获取用户套餐信息
+      fetchUserPackages();
     } catch (error) {
       console.error('认证检查失败:', error);
+      // 认证失败时清理所有存储的认证信息
+      localStorage.removeItem('user');
+      localStorage.removeItem('accountType');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('accountType');
+      sessionStorage.removeItem('token');
       router.push('/login');
     } finally {
       setLoading(false);
     }
   };
 
+  // 获取用户套餐信息
+  const fetchUserPackages = async () => {
+    try {
+      const response = await userPackagesAPI.getUserPackages({
+        page: 1,
+        pageSize: 10,
+      });
+      if (response.data.success) {
+        setUserPackage(response.data.data?.userPackages[0] || {});
+      }
+    } catch (error) {
+      console.error('获取用户套餐信息失败:', error);
+    }
+  };
+
+  // 显示套餐详情
+  const showPackageDetails = () => {
+    setPackageModalVisible(true);
+  };
+
   const handleLogout = async () => {
     try {
       await authAPI.logout();
+      // 清理所有存储的认证信息
       localStorage.removeItem('user');
       localStorage.removeItem('accountType');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('accountType');
+      sessionStorage.removeItem('token');
       message.success('退出成功');
       router.push('/login');
     } catch (error) {
       console.error('退出失败:', error);
+      // 即使退出API失败，也要清理本地存储
+      localStorage.removeItem('user');
+      localStorage.removeItem('accountType');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('accountType');
+      sessionStorage.removeItem('token');
       message.error('退出失败');
+      router.push('/login');
     }
   };
 
@@ -179,6 +234,14 @@ export default function mainLayout({
                 </Tag>
               )}
             </span>
+            <Tag
+              icon={<CrownOutlined />}
+              color='gold'
+              style={{ cursor: 'pointer' }}
+              onClick={() => showPackageDetails()}
+            >
+              {userPackage.package?.packageName || '套餐名称'}
+            </Tag>
             <Dropdown menu={{ items: userMenuItems }} placement='bottomRight'>
               <Avatar
                 icon={<UserOutlined />}
@@ -245,6 +308,74 @@ export default function mainLayout({
           </Content>
         </Layout>
       </Layout>
+
+      {/* 套餐详情弹窗 */}
+      <Modal
+        title='套餐详情'
+        open={packageModalVisible}
+        onCancel={() => setPackageModalVisible(false)}
+        footer={[
+          <Button key='close' onClick={() => setPackageModalVisible(false)}>
+            关闭
+          </Button>,
+        ]}
+        width={600}
+      >
+        {userPackage && (
+          <Descriptions column={1} bordered>
+            <Descriptions.Item label='套餐名称'>
+              {userPackage.package?.packageName}
+            </Descriptions.Item>
+            <Descriptions.Item label='套餐描述'>
+              {userPackage.package?.packageDesc || '暂无描述'}
+            </Descriptions.Item>
+            <Descriptions.Item label='套餐原价'>
+              ¥{userPackage.package?.originalPrice || 0}
+            </Descriptions.Item>
+            <Descriptions.Item label='当前价格'>
+              ¥
+              {(userPackage.package?.originalPrice *
+                (100 - userPackage.package?.discountPercent)) /
+                100 || 0}
+              （
+              {+userPackage.package?.discountPercent === 100
+                ? '免费'
+                : `${+(
+                    (100 - +userPackage.package?.discountPercent) /
+                    100
+                  ).toFixed(1)}折`}
+              ）
+            </Descriptions.Item>
+            <Descriptions.Item label='套餐时长'>
+              {userPackage.package?.durationMonths || 0} 个月
+            </Descriptions.Item>
+            <Descriptions.Item label='最多绑定店铺数'>
+              {userPackage.package?.maxBindMall || 0} 个
+            </Descriptions.Item>
+            <Descriptions.Item label='到期时间'>
+              {(() => {
+                if (!userPackage.expireTime) {
+                  return '暂无';
+                }
+                const expireDate = new Date(userPackage.expireTime);
+                const now = new Date();
+                const isExpired = expireDate < now;
+                return (
+                  <span style={{ color: isExpired ? '#ff4d4f' : '#8b5cf6' }}>
+                    {userPackage.expireTime}
+                    {isExpired && ' (已过期)'}
+                  </span>
+                );
+              })()}
+            </Descriptions.Item>
+            <Descriptions.Item label='状态'>
+              <Tag color={userPackage.package?.isActive ? 'green' : 'red'}>
+                {userPackage.package?.isActive ? '已激活' : '待激活'}
+              </Tag>
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
     </Layout>
   );
 }

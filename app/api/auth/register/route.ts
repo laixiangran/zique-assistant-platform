@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User, Invitation, InvitationReward, UserOperationLog } from '@/models';
+import {
+  User,
+  Invitation,
+  InvitationReward,
+  UserOperationLog,
+  MembershipPackage,
+  UserPackage,
+} from '@/models';
 import {
   hashPassword,
   validatePhone,
@@ -160,6 +167,35 @@ export async function POST(request: NextRequest) {
           inviterId,
           inviteeId: newUser.id,
           status: 'accepted',
+        },
+        { transaction }
+      );
+    }
+
+    // 查询试用套餐并创建用户套餐绑定关系
+    const trialPackage = await MembershipPackage.findOne({
+      where: {
+        packageType: 'try',
+        isActive: true,
+      },
+    });
+
+    if (trialPackage) {
+      // 计算过期时间（当前时间 + 套餐有效期月数）
+      const expireTime = new Date();
+      expireTime.setMonth(
+        expireTime.getMonth() + (trialPackage.durationMonths || 6)
+      );
+      // 设置到期时间为当天的23:59:59
+      expireTime.setHours(23, 59, 59, 999);
+
+      await UserPackage.create(
+        {
+          userId: newUser.id,
+          packageId: trialPackage.id,
+          orderTime: new Date(),
+          expireTime: expireTime,
+          isActive: true,
         },
         { transaction }
       );

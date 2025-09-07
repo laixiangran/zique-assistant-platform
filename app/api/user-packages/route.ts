@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
 
     // 构建查询条件
-    const where: any = { user_id: userId };
+    const where: any = { userId: userId };
     if (status) where.status = status;
 
     // 查询用户套餐记录
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       ],
       limit,
       offset: (page - 1) * limit,
-      order: [['created_at', 'DESC']],
+      order: [['createdTime', 'DESC']],
     });
 
     // 处理数据
@@ -129,21 +129,19 @@ export async function POST(request: NextRequest) {
     const startTime = new Date();
     const endTime = new Date();
     endTime.setMonth(
-      endTime.getMonth() + (membershipPackage as any).duration_months
+      endTime.getMonth() + (membershipPackage as any).durationMonths
     );
+    // 设置到期时间为当天的23:59:59
+    endTime.setHours(23, 59, 59, 999);
 
     // 创建用户套餐订单
     const userPackage = await UserPackage.create({
-      user_id: userId,
-      package_id: package_id,
-      order_number: orderNumber,
-      payment_amount: (membershipPackage as any).price,
-      package_start_time: startTime,
-      package_end_time: endTime,
-      payment_status: 'pending',
-      payment_method: payment_method,
-      status: 'active',
-    } as any);
+      userId: userId,
+      packageId: package_id,
+      orderTime: startTime,
+      expireTime: endTime,
+      isActive: true,
+    });
 
     // 记录操作日志
     await UserOperationLog.create({
