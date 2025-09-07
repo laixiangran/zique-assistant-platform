@@ -57,7 +57,7 @@ export async function GET(
 
     // 查询子账户的店铺绑定
     const mallBindings = await UserMallBinding.findAll({
-      where: { userId: subAccountId },
+      where: { userId: subAccountId, accountType: 'sub' },
       attributes: ['mallId', 'mallName'],
     });
 
@@ -256,6 +256,7 @@ export async function PUT(
       await UserMallBinding.destroy({
         where: {
           userId: Number(subAccountId),
+          accountType: 'sub',
         },
       });
 
@@ -265,6 +266,7 @@ export async function PUT(
         const parentMallBindings = await UserMallBinding.findAll({
           where: {
             userId: mainAccountUserId,
+            accountType: 'main',
             mallId: responsibleMalls,
           },
         });
@@ -272,6 +274,7 @@ export async function PUT(
         // 为子账户创建相应的店铺绑定
         const subAccountBindings = parentMallBindings.map((binding) => ({
           userId: Number(subAccountId),
+          accountType: 'sub' as const,
           mallId: binding.mallId,
           mallName: binding.mallName,
         }));
@@ -304,7 +307,7 @@ export async function PUT(
 
     // 查询更新后的子账户店铺绑定
     const updatedMallBindings = await UserMallBinding.findAll({
-      where: { userId: subAccountId },
+      where: { userId: subAccountId, accountType: 'sub' },
       attributes: ['mallId', 'mallName'],
     });
 

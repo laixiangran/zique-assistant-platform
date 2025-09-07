@@ -66,7 +66,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...values, accountType: 'user' }),
+        body: JSON.stringify({ ...values, accountType: 'main' }),
       });
 
       let data = await response.json();
@@ -78,7 +78,7 @@ export default function LoginPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ ...values, accountType: 'sub_account' }),
+          body: JSON.stringify({ ...values, accountType: 'sub' }),
         });
         data = await response.json();
       }
@@ -129,7 +129,7 @@ export default function LoginPage() {
         message.success(data.message || '注册成功');
         // 注册后默认记住用户信息（类似大多数网站的注册后自动登录）
         localStorage.setItem('user', JSON.stringify(data.data.user));
-        localStorage.setItem('accountType', 'user');
+        localStorage.setItem('accountType', 'main');
         localStorage.setItem('token', data.data.token);
 
         // 跳转到主页面

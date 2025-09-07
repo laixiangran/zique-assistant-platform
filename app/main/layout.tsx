@@ -39,7 +39,7 @@ interface UserInfo {
   email?: string;
   free_mall_count?: number;
   used_mall_count?: number;
-  accountType: 'user' | 'sub_account';
+  accountType: 'main' | 'sub';
 }
 
 export default function mainLayout({
@@ -228,7 +228,7 @@ export default function mainLayout({
               style={{ color: '#666', fontWeight: 500, whiteSpace: 'nowrap' }}
             >
               欢迎，{userInfo?.username || '用户'}
-              {userInfo?.accountType === 'sub_account' && (
+              {userInfo?.accountType === 'sub' && (
                 <Tag color='blue' style={{ marginLeft: '8px' }}>
                   子账户
                 </Tag>

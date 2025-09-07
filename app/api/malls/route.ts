@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
     const currentBindCount = await UserMallBinding.count({
       where: {
         userId: userId,
+        accountType: 'main',
       },
     });
 
@@ -173,6 +174,7 @@ export async function POST(request: NextRequest) {
     // 创建店铺绑定
     const mallBinding = await UserMallBinding.create({
       userId: userId,
+      accountType: 'main',
       mallName: mallName,
       mallId: mallId,
     });

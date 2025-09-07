@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
     const currentBindCount = await UserMallBinding.count({
       where: {
         userId: userId,
+        accountType: 'main',
       },
     });
 

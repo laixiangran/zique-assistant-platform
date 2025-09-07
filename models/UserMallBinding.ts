@@ -5,6 +5,7 @@ import User from './User';
 interface UserMallBindingAttributes {
   id: number;
   userId: number;
+  accountType: 'main' | 'sub';
   mallId: number;
   mallName: string;
   createdTime: Date;
@@ -23,6 +24,7 @@ class UserMallBinding
 {
   public id!: number;
   public userId!: number;
+  public accountType!: 'main' | 'sub';
   public mallId!: number;
   public mallName!: string;
   public createdTime!: Date;
@@ -44,6 +46,11 @@ UserMallBinding.init(
         key: 'id',
       },
       field: 'user_id',
+    },
+    accountType: {
+      type: DataTypes.ENUM('main', 'sub'),
+      allowNull: false,
+      field: 'account_type',
     },
     mallId: {
       type: DataTypes.BIGINT,
@@ -75,7 +82,7 @@ UserMallBinding.init(
     indexes: [
       {
         unique: true,
-        fields: ['user_id', 'mall_id'],
+        fields: ['user_id', 'account_type', 'mall_id'],
         name: 'unique_user_mall_binding',
       },
     ],

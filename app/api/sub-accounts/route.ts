@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       rows.map(async (row: any) => {
         // 查询子账户的店铺绑定
         const mallBindings = await UserMallBinding.findAll({
-          where: { userId: row.id },
+          where: { userId: row.id, accountType: 'sub' },
           attributes: ['mallId', 'mallName'],
         });
 
@@ -243,11 +243,12 @@ export async function POST(request: NextRequest) {
       });
 
       // 为子账户创建相应的店铺绑定
-      const subAccountBindings = parentMallBindings.map((binding) => ({
-        userId: Number(subAccount.id),
-        mallId: binding.mallId,
-        mallName: binding.mallName,
-      }));
+        const subAccountBindings = parentMallBindings.map((binding) => ({
+           userId: Number(subAccount.id),
+           accountType: 'sub' as const,
+           mallId: binding.mallId,
+           mallName: binding.mallName,
+         }));
 
       if (subAccountBindings.length > 0) {
         await UserMallBinding.bulkCreate(subAccountBindings);
@@ -272,7 +273,7 @@ export async function POST(request: NextRequest) {
 
     // 查询创建的子账户的店铺绑定
     const mallBindings = await UserMallBinding.findAll({
-      where: { userId: subAccount.id },
+      where: { userId: subAccount.id, accountType: 'sub' },
       attributes: ['mallId', 'mallName'],
     });
 

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     if (user) {
       // 找到主账户
-      accountType = 'user';
+      accountType = 'main';
 
       // 检查账户状态
       if (user.status !== 'active') {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      accountType = 'sub_account';
+      accountType = '`sub`';
 
       // 检查子账户状态
       if (user.status !== 'active') {

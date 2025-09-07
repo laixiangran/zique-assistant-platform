@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         status: user.status,
         createdTime: user.createdTime,
         updatedTime: user.updatedTime,
-        accountType: 'user',
+        accountType: 'main',
       };
     } else if (decoded.type === 'sub_account') {
       // 子账户
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         status: subAccount.status,
         createdTime: subAccount.createdTime,
         updatedTime: subAccount.updatedTime,
-        accountType: 'sub_account',
+        accountType: 'sub',
         parentUser: {
           id: (subAccount as any).parentUser.id,
           username: (subAccount as any).parentUser.username,
