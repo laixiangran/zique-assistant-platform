@@ -106,7 +106,7 @@ export function authenticateMainAccount(request: NextRequest): AuthResult {
 
 // 获取用户ID（主账户返回自己的ID，子账户返回父账户ID）
 export function getUserId(user: JWTPayload): number {
-  return user.type === 'user' ? user.userId : (user as any).parentUserId;
+  return user.userId;
 }
 
 // 密码相关函数

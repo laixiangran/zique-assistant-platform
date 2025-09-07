@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Button, Card, Tabs, message, Checkbox } from 'antd';
+import { Form, Input, Button, Card, message, Checkbox } from 'antd';
 import {
   UserOutlined,
   LockOutlined,
@@ -10,13 +10,11 @@ import {
   MailOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
-
-const { TabPane } = Tabs;
+import './page.scss';
 
 interface LoginFormData {
   username: string;
   password: string;
-  accountType: 'user' | 'sub_account';
   remember?: boolean;
 }
 
@@ -31,34 +29,80 @@ interface RegisterFormData {
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('login');
+  const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
   const [loginForm] = Form.useForm();
   const [registerForm] = Form.useForm();
 
+  // 页面加载时检查是否有记住的登录信息
+  useEffect(() => {
+    // 检查localStorage中是否有用户信息（记住我）
+    const userFromLocalStorage = localStorage.getItem('user');
+    const tokenFromLocalStorage = localStorage.getItem('token');
+
+    if (userFromLocalStorage && tokenFromLocalStorage) {
+      // 存在记住的登录信息，直接跳转到主页
+      router.push('/main/home');
+      return;
+    }
+
+    // 检查sessionStorage中是否有用户信息
+    const userFromSessionStorage = sessionStorage.getItem('user');
+    const tokenFromSessionStorage = sessionStorage.getItem('token');
+
+    if (userFromSessionStorage && tokenFromSessionStorage) {
+      // 存在会话登录信息，直接跳转到主页
+      router.push('/main/home');
+      return;
+    }
+  }, [router]);
+
   const handleLogin = async (values: LoginFormData) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      // 先尝试主账户登录
+      let response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, accountType: 'user' }),
       });
 
-      const data = await response.json();
+      let data = await response.json();
+
+      // 如果主账户登录失败，尝试子账户登录
+      if (!response.ok) {
+        response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...values, accountType: 'sub_account' }),
+        });
+        data = await response.json();
+      }
 
       if (response.ok) {
         message.success(data.message || '登录成功');
-        // 存储用户信息到localStorage
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-        localStorage.setItem('accountType', data.data.accountType);
 
-        // 跳转到仪表盘
-        router.push('/dashboard');
+        // 根据"记住我"选项决定是否存储用户信息到localStorage
+        if (values.remember) {
+          // 存储用户信息到localStorage实现持久化登录
+          localStorage.setItem('user', JSON.stringify(data.data.user));
+          localStorage.setItem('accountType', data.data.accountType);
+          localStorage.setItem('token', data.data.token);
+        } else {
+          // 仅存储到sessionStorage，关闭浏览器后失效
+          sessionStorage.setItem('user', JSON.stringify(data.data.user));
+          sessionStorage.setItem('accountType', data.data.accountType);
+          sessionStorage.setItem('token', data.data.token);
+        }
+
+        // 跳转到主页面
+        router.push('/main/home');
       } else {
-        message.error(data.message || '登录失败');
+        message.error(data.message || '用户名或密码错误');
       }
     } catch (error) {
       console.error('登录错误:', error);
@@ -76,19 +120,20 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, remember: true }), // 注册后默认记住
       });
 
       const data = await response.json();
 
       if (response.ok) {
         message.success(data.message || '注册成功');
-        // 存储用户信息到localStorage
+        // 注册后默认记住用户信息（类似大多数网站的注册后自动登录）
         localStorage.setItem('user', JSON.stringify(data.data.user));
         localStorage.setItem('accountType', 'user');
+        localStorage.setItem('token', data.data.token);
 
-        // 跳转到仪表盘
-        router.push('/dashboard');
+        // 跳转到主页面
+        router.push('/main/home');
       } else {
         message.error(data.message || '注册失败');
       }
@@ -101,31 +146,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4'>
-      <Card className='w-full max-w-md shadow-lg'>
-        <div className='text-center mb-6'>
-          <h1 className='text-2xl font-bold text-gray-800 mb-2'>
-            紫雀助手平台
-          </h1>
-          <p className='text-gray-600'>店铺管理与会员服务平台</p>
+    <div className='login-wrapper'>
+      <Card>
+        <div>
+          <h1>紫雀跨境运营平台</h1>
         </div>
 
-        <Tabs activeKey={activeTab} onChange={setActiveTab} centered>
-          <TabPane tab='登录' key='login'>
+        {isLogin ? (
+          <div>
             <Form
               form={loginForm}
               name='login'
               onFinish={handleLogin}
               layout='vertical'
               requiredMark={false}
+              size='large'
             >
-              <Form.Item name='accountType' initialValue='user'>
-                <Tabs size='small' centered>
-                  <TabPane tab='主账户' key='user' />
-                  <TabPane tab='子账户' key='sub_account' />
-                </Tabs>
-              </Form.Item>
-
               <Form.Item
                 name='username'
                 rules={[
@@ -133,11 +169,7 @@ export default function LoginPage() {
                   { min: 3, message: '用户名至少3个字符' },
                 ]}
               >
-                <Input
-                  prefix={<UserOutlined />}
-                  placeholder='用户名'
-                  size='large'
-                />
+                <Input prefix={<UserOutlined />} placeholder='用户名' />
               </Form.Item>
 
               <Form.Item
@@ -147,48 +179,44 @@ export default function LoginPage() {
                   { min: 6, message: '密码至少6个字符' },
                 ]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder='密码'
-                  size='large'
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder='密码' />
               </Form.Item>
 
               <Form.Item>
-                <div className='flex justify-between items-center'>
+                <div>
                   <Form.Item name='remember' valuePropName='checked' noStyle>
                     <Checkbox>记住我</Checkbox>
                   </Form.Item>
-                  <Link
-                    href='/forgot-password'
-                    className='text-blue-600 hover:text-blue-800'
-                  >
-                    忘记密码？
-                  </Link>
+                  <Link href='/forgot-password'>忘记密码？</Link>
                 </div>
               </Form.Item>
 
               <Form.Item>
-                <Button
-                  type='primary'
-                  htmlType='submit'
-                  loading={loading}
-                  size='large'
-                  className='w-full'
-                >
-                  登录
+                <Button type='primary' htmlType='submit' loading={loading}>
+                  <span>登录</span>
                 </Button>
               </Form.Item>
-            </Form>
-          </TabPane>
 
-          <TabPane tab='注册' key='register'>
+              <div>
+                <Button
+                  type='link'
+                  size='small'
+                  onClick={() => setIsLogin(false)}
+                >
+                  没有账户？立即注册
+                </Button>
+              </div>
+            </Form>
+          </div>
+        ) : (
+          <div>
             <Form
               form={registerForm}
               name='register'
               onFinish={handleRegister}
               layout='vertical'
               requiredMark={false}
+              size='large'
             >
               <Form.Item
                 name='username'
@@ -202,11 +230,7 @@ export default function LoginPage() {
                   },
                 ]}
               >
-                <Input
-                  prefix={<UserOutlined />}
-                  placeholder='用户名'
-                  size='large'
-                />
+                <Input prefix={<UserOutlined />} placeholder='用户名' />
               </Form.Item>
 
               <Form.Item
@@ -216,11 +240,7 @@ export default function LoginPage() {
                   { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
                 ]}
               >
-                <Input
-                  prefix={<PhoneOutlined />}
-                  placeholder='手机号'
-                  size='large'
-                />
+                <Input prefix={<PhoneOutlined />} placeholder='手机号' />
               </Form.Item>
 
               <Form.Item
@@ -230,11 +250,7 @@ export default function LoginPage() {
                   { type: 'email', message: '请输入有效的邮箱地址' },
                 ]}
               >
-                <Input
-                  prefix={<MailOutlined />}
-                  placeholder='邮箱'
-                  size='large'
-                />
+                <Input prefix={<MailOutlined />} placeholder='邮箱' />
               </Form.Item>
 
               <Form.Item
@@ -245,11 +261,7 @@ export default function LoginPage() {
                   { max: 20, message: '密码最多20个字符' },
                 ]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder='密码'
-                  size='large'
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder='密码' />
               </Form.Item>
 
               <Form.Item
@@ -270,7 +282,6 @@ export default function LoginPage() {
                 <Input.Password
                   prefix={<LockOutlined />}
                   placeholder='确认密码'
-                  size='large'
                 />
               </Form.Item>
 
@@ -278,25 +289,29 @@ export default function LoginPage() {
                 name='invitationCode'
                 rules={[{ len: 8, message: '邀请码为8位字符' }]}
               >
-                <Input placeholder='邀请码（可选）' size='large' />
+                <Input placeholder='邀请码（可选）' />
               </Form.Item>
 
               <Form.Item>
-                <Button
-                  type='primary'
-                  htmlType='submit'
-                  loading={loading}
-                  size='large'
-                  className='w-full'
-                >
-                  注册
+                <Button type='primary' htmlType='submit' loading={loading}>
+                  <span>注册</span>
                 </Button>
               </Form.Item>
-            </Form>
-          </TabPane>
-        </Tabs>
 
-        <div className='text-center mt-4 text-sm text-gray-500'>
+              <div>
+                <Button
+                  type='link'
+                  size='small'
+                  onClick={() => setIsLogin(true)}
+                >
+                  已有账户？去登录
+                </Button>
+              </div>
+            </Form>
+          </div>
+        )}
+
+        <div>
           <p>© 2024 紫雀助手平台. 保留所有权利.</p>
         </div>
       </Card>

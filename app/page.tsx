@@ -29,10 +29,10 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100'>
-      <div className='text-center'>
+    <div>
+      <div>
         <Spin size='large' />
-        <div className='mt-4 text-lg text-gray-600'>正在加载...</div>
+        <div>正在加载...</div>
       </div>
     </div>
   );

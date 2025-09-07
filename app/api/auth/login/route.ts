@@ -11,7 +11,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password, accountType = 'user' } = body;
+    const { username, password } = body;
 
     // 验证必填字段
     if (!username || !password) {
@@ -23,20 +23,18 @@ export async function POST(request: NextRequest) {
     let user: any = null;
     let userInfo: any = null;
     let tokenPayload: any = null;
+    let accountType = '';
 
-    if (accountType === 'user') {
-      // 主账户登录
-      user = await User.findOne({
-        where: {
-          username,
-        },
-      });
+    // 先尝试查找主账户
+    user = await User.findOne({
+      where: {
+        username,
+      },
+    });
 
-      if (!user) {
-        return NextResponse.json(errorResponse('用户名或密码错误'), {
-          status: 401,
-        });
-      }
+    if (user) {
+      // 找到主账户
+      accountType = 'user';
 
       // 检查账户状态
       if (user.status !== 'active') {
@@ -67,10 +65,8 @@ export async function POST(request: NextRequest) {
         username: user.username,
         phone: user.phone,
         email: user.email,
-        free_shop_count: user.free_shop_count,
-        used_shop_count: user.used_shop_count,
         status: user.status,
-        created_at: user.created_at,
+        createdTime: user.createdTime,
       };
 
       tokenPayload = {
@@ -78,8 +74,8 @@ export async function POST(request: NextRequest) {
         username: user.username,
         type: 'user',
       };
-    } else if (accountType === 'sub_account') {
-      // 子账户登录
+    } else {
+      // 如果没找到主账户，则尝试查找子账户
       user = await SubAccount.findOne({
         where: {
           username,
@@ -98,6 +94,8 @@ export async function POST(request: NextRequest) {
           status: 401,
         });
       }
+
+      accountType = 'sub_account';
 
       // 检查子账户状态
       if (user.status !== 'active') {
@@ -118,7 +116,7 @@ export async function POST(request: NextRequest) {
       if (!isPasswordValid) {
         // 记录登录失败日志
         await UserOperationLog.create({
-          userId: user.parent_user_id,
+          userId: user.id,
           operationType: 'sub_account_login',
           operationDesc: `子账户登录失败 - 密码错误 (${user.username})`,
           ipAddress: getClientIP(request),
@@ -133,12 +131,9 @@ export async function POST(request: NextRequest) {
       userInfo = {
         id: user.id,
         username: user.username,
-        parent_user_id: user.parent_user_id,
-        responsible_shops: JSON.parse(user.responsible_shops || '[]'),
         role: user.role,
-        permissions: JSON.parse(user.permissions || '[]'),
         status: user.status,
-        created_at: user.created_at,
+        createdTime: user.createdTime,
         parentUser: {
           id: user.parentUser.id,
           username: user.parentUser.username,
@@ -149,13 +144,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         username: user.username,
         type: 'sub_account',
-        parentUserId: user.parent_user_id,
-        role: user.role,
       };
-    } else {
-      return NextResponse.json(errorResponse('无效的账户类型'), {
-        status: 400,
-      });
     }
 
     // 生成JWT token
@@ -163,12 +152,9 @@ export async function POST(request: NextRequest) {
 
     // 记录登录成功日志
     await UserOperationLog.create({
-      userId: accountType === 'user' ? user.id : user.parent_user_id,
-      operationType: accountType === 'user' ? 'login' : 'sub_account_login',
-      operationDesc:
-        accountType === 'user'
-          ? '用户登录成功'
-          : `子账户登录成功 (${user.username})`,
+      userId: user.id,
+      operationType: `${accountType}_login`,
+      operationDesc: `${user.username} 登录成功`,
       ipAddress: getClientIP(request),
       userAgent: request.headers.get('user-agent') || '',
     });

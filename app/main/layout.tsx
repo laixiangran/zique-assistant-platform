@@ -125,7 +125,7 @@ export default function mainLayout({
 
   if (loading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
+      <div>
         <div>加载中...</div>
       </div>
     );
