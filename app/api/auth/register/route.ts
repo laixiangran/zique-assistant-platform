@@ -162,11 +162,24 @@ export async function POST(request: NextRequest) {
 
     // 如果有邀请人，创建邀请记录
     if (inviterId !== null) {
-      await Invitation.create(
+      const invitation = await Invitation.create(
         {
           inviterId,
           inviteeId: newUser.id,
           status: 'accepted',
+        },
+        { transaction }
+      );
+
+      // 同时创建邀请奖励记录
+      await InvitationReward.create(
+        {
+          invitationId: invitation.id,
+          userId: inviterId,
+          rewardType: 'free_malls',
+          rewardCount: 5,
+          usedCount: 0,
+          status: 'granted',
         },
         { transaction }
       );

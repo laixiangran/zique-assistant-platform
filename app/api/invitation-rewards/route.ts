@@ -38,13 +38,13 @@ export async function GET(request: NextRequest) {
       include: [
         {
           model: User,
-          as: 'invitee',
+          as: 'user',
           attributes: ['id', 'username', 'phone', 'email'],
         },
       ],
       limit,
       offset: (page - 1) * limit,
-      order: [['created_at', 'DESC']],
+      order: [['created_time', 'DESC']],
     });
 
     // 计算统计数据

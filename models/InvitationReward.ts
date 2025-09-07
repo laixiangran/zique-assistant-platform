@@ -65,7 +65,7 @@ InvitationReward.init(
       comment: '邀请记录ID',
     },
     rewardType: {
-      type: DataTypes.ENUM('free_shops', 'discount', 'cash', 'points'),
+      type: DataTypes.ENUM('free_malls', 'discount', 'cash', 'points'),
       allowNull: false,
       field: 'reward_type',
       comment: '奖励类型：免费店铺、折扣、现金、积分',

@@ -1,7 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { Invitation, InvitationReward, User, UserOperationLog } from '@/models'
-import { authenticateMainAccount, successResponse, errorResponse, getClientIP } from '@/lib/utils'
-import { Op } from 'sequelize';
+import { NextRequest, NextResponse } from 'next/server';
+import { Invitation, User, UserOperationLog } from '@/models';
+import {
+  authenticateMainAccount,
+  successResponse,
+  errorResponse,
+  getClientIP,
+  formatObjectDates,
+} from '@/lib/utils';
 
 // 获取邀请记录
 export async function GET(request: NextRequest) {
@@ -19,20 +24,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
-    const type = searchParams.get('type'); // 'sent' | 'received'
 
-    let where: any = {};
-
-    if (type === 'sent') {
-      // 我发出的邀请
-      where.inviter_id = userId;
-    } else if (type === 'received') {
-      // 我收到的邀请（实际上是我通过别人的邀请码注册）
-      where.invitee_id = userId;
-    } else {
-      // 默认显示我发出的邀请
-      where.inviter_id = userId;
-    }
+    let where: any = { inviter_id: userId };
 
     if (status) {
       where.status = status;
@@ -44,18 +37,13 @@ export async function GET(request: NextRequest) {
       include: [
         {
           model: User,
-          as: 'inviter',
-          attributes: ['id', 'username', 'phone', 'email'],
-        },
-        {
-          model: User,
           as: 'invitee',
-          attributes: ['id', 'username', 'phone', 'email'],
+          attributes: ['username'],
         },
       ],
       limit,
       offset: (page - 1) * limit,
-      order: [['created_at', 'DESC']],
+      order: [['createdTime', 'DESC']],
     });
 
     return NextResponse.json(

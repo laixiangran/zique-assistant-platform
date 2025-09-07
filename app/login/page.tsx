@@ -3,12 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Form, Input, Button, Card, message, Checkbox } from 'antd';
-import {
-  UserOutlined,
-  LockOutlined,
-  PhoneOutlined,
-  MailOutlined,
-} from '@ant-design/icons';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import './page.scss';
 
@@ -18,21 +13,10 @@ interface LoginFormData {
   remember?: boolean;
 }
 
-interface RegisterFormData {
-  username: string;
-  password: string;
-  confirmPassword: string;
-  phone: string;
-  email: string;
-  invitationCode?: string;
-}
-
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
   const [loginForm] = Form.useForm();
-  const [registerForm] = Form.useForm();
 
   // 页面加载时检查是否有记住的登录信息
   useEffect(() => {
@@ -112,39 +96,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleRegister = async (values: RegisterFormData) => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...values, remember: true }), // 注册后默认记住
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        message.success(data.message || '注册成功');
-        // 注册后默认记住用户信息（类似大多数网站的注册后自动登录）
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-        localStorage.setItem('accountType', 'main');
-        localStorage.setItem('token', data.data.token);
-
-        // 跳转到主页面
-        router.push('/main/home');
-      } else {
-        message.error(data.message || '注册失败');
-      }
-    } catch (error) {
-      console.error('注册错误:', error);
-      message.error('网络错误，请稍后重试');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className='login-wrapper'>
       <Card>
@@ -152,167 +103,62 @@ export default function LoginPage() {
           <h1>紫雀跨境运营平台</h1>
         </div>
 
-        {isLogin ? (
-          <div>
-            <Form
-              form={loginForm}
-              name='login'
-              onFinish={handleLogin}
-              layout='vertical'
-              requiredMark={false}
-              size='large'
+        <div>
+          <Form
+            form={loginForm}
+            name='login'
+            onFinish={handleLogin}
+            layout='vertical'
+            requiredMark={false}
+            size='large'
+          >
+            <Form.Item
+              name='username'
+              rules={[
+                { required: true, message: '请输入用户名' },
+                { min: 3, message: '用户名至少3个字符' },
+              ]}
             >
-              <Form.Item
-                name='username'
-                rules={[
-                  { required: true, message: '请输入用户名' },
-                  { min: 3, message: '用户名至少3个字符' },
-                ]}
-              >
-                <Input prefix={<UserOutlined />} placeholder='用户名' />
-              </Form.Item>
+              <Input prefix={<UserOutlined />} placeholder='用户名' />
+            </Form.Item>
 
-              <Form.Item
-                name='password'
-                rules={[
-                  { required: true, message: '请输入密码' },
-                  { min: 6, message: '密码至少6个字符' },
-                ]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder='密码' />
-              </Form.Item>
+            <Form.Item
+              name='password'
+              rules={[
+                { required: true, message: '请输入密码' },
+                { min: 6, message: '密码至少6个字符' },
+              ]}
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder='密码' />
+            </Form.Item>
 
-              <Form.Item>
-                <div>
-                  <Form.Item name='remember' valuePropName='checked' noStyle>
-                    <Checkbox>记住我</Checkbox>
-                  </Form.Item>
-                  <Link href='/forgot-password'>忘记密码？</Link>
-                </div>
-              </Form.Item>
-
-              <Form.Item>
-                <Button type='primary' htmlType='submit' loading={loading}>
-                  <span>登录</span>
-                </Button>
-              </Form.Item>
-
+            <Form.Item>
               <div>
-                <Button
-                  type='link'
-                  size='small'
-                  onClick={() => setIsLogin(false)}
-                >
+                <Form.Item name='remember' valuePropName='checked' noStyle>
+                  <Checkbox>记住我</Checkbox>
+                </Form.Item>
+                <Link href='/forgot-password'>忘记密码？</Link>
+              </div>
+            </Form.Item>
+
+            <Form.Item>
+              <Button type='primary' htmlType='submit' loading={loading}>
+                <span>登录</span>
+              </Button>
+            </Form.Item>
+
+            <div>
+              <Link href='/register'>
+                <Button type='link' size='small'>
                   没有账户？立即注册
                 </Button>
-              </div>
-            </Form>
-          </div>
-        ) : (
-          <div>
-            <Form
-              form={registerForm}
-              name='register'
-              onFinish={handleRegister}
-              layout='vertical'
-              requiredMark={false}
-              size='large'
-            >
-              <Form.Item
-                name='username'
-                rules={[
-                  { required: true, message: '请输入用户名' },
-                  { min: 3, message: '用户名至少3个字符' },
-                  { max: 20, message: '用户名最多20个字符' },
-                  {
-                    pattern: /^[a-zA-Z0-9_]+$/,
-                    message: '用户名只能包含字母、数字和下划线',
-                  },
-                ]}
-              >
-                <Input prefix={<UserOutlined />} placeholder='用户名' />
-              </Form.Item>
-
-              <Form.Item
-                name='phone'
-                rules={[
-                  { required: true, message: '请输入手机号' },
-                  { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
-                ]}
-              >
-                <Input prefix={<PhoneOutlined />} placeholder='手机号' />
-              </Form.Item>
-
-              <Form.Item
-                name='email'
-                rules={[
-                  { required: true, message: '请输入邮箱' },
-                  { type: 'email', message: '请输入有效的邮箱地址' },
-                ]}
-              >
-                <Input prefix={<MailOutlined />} placeholder='邮箱' />
-              </Form.Item>
-
-              <Form.Item
-                name='password'
-                rules={[
-                  { required: true, message: '请输入密码' },
-                  { min: 6, message: '密码至少6个字符' },
-                  { max: 20, message: '密码最多20个字符' },
-                ]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder='密码' />
-              </Form.Item>
-
-              <Form.Item
-                name='confirmPassword'
-                dependencies={['password']}
-                rules={[
-                  { required: true, message: '请确认密码' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(new Error('两次输入的密码不一致'));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder='确认密码'
-                />
-              </Form.Item>
-
-              <Form.Item
-                name='invitationCode'
-                rules={[{ len: 8, message: '邀请码为8位字符' }]}
-              >
-                <Input placeholder='邀请码（可选）' />
-              </Form.Item>
-
-              <Form.Item>
-                <Button type='primary' htmlType='submit' loading={loading}>
-                  <span>注册</span>
-                </Button>
-              </Form.Item>
-
-              <div>
-                <Button
-                  type='link'
-                  size='small'
-                  onClick={() => setIsLogin(true)}
-                >
-                  已有账户？去登录
-                </Button>
-              </div>
-            </Form>
-          </div>
-        )}
+              </Link>
+            </div>
+          </Form>
+        </div>
 
         <div>
-          <p>© 2024 紫雀助手平台. 保留所有权利.</p>
+          <p>© 2025 紫雀跨境运营平台. 保留所有权利.</p>
         </div>
       </Card>
     </div>
