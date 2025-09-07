@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserMallBinding, User, UserOperationLog } from '@/models';
+import {
+  UserMallBinding,
+  User,
+  UserOperationLog,
+  UserPackage,
+  MembershipPackage,
+  InvitationReward,
+} from '@/models';
 import {
   authenticateRequest,
   successResponse,
@@ -76,13 +83,63 @@ export async function POST(request: NextRequest) {
 
     const userId = authResult.user?.userId!;
 
-    // TODO: 查询已绑定的店铺数是否超过限制（从套餐和邀请奖励中统计总共可绑定的店铺数）
-    // 查询当前用户已绑定的店铺数
-    // 查询当前套餐的最大可绑定店铺数以及邀请获得的奖励数
-    // 如果已绑定店铺数 >= 最大可绑定店铺数 + 奖励数，则返回错误
-    // return NextResponse.json(errorResponse('绑定店铺数量已超出限制'), {
-    //   status: 500,
-    // });
+    // 验证店铺绑定配额
+    // 获取用户当前有效的套餐
+    const userPackage = await UserPackage.findOne({
+      where: {
+        userId: userId,
+        isActive: true,
+        expireTime: {
+          [require('sequelize').Op.gt]: new Date(),
+        },
+      },
+      include: [
+        {
+          model: MembershipPackage,
+          as: 'package',
+        },
+      ],
+      order: [['expireTime', 'DESC']],
+    });
+
+    // 获取用户已领取的邀请奖励（免费店铺类型）
+    const invitationRewards = await InvitationReward.findAll({
+      where: {
+        userId,
+        rewardType: 'free_malls',
+        status: 'granted',
+      },
+    });
+
+    // 计算邀请奖励的店铺数
+    const rewardShopCount = invitationRewards.reduce((total, reward) => {
+      return total + Number((reward as any).rewardValue || 0);
+    }, 0);
+
+    // 获取套餐的最大绑定店铺数
+    const packageMaxBindMall = (userPackage as any)?.package?.maxBindMall || 0;
+
+    // 计算总的可绑定店铺数
+    const totalQuota = packageMaxBindMall + rewardShopCount;
+
+    // 获取用户当前已绑定的店铺数
+    const currentBindCount = await UserMallBinding.count({
+      where: {
+        userId: userId,
+      },
+    });
+
+    // 检查是否超过配额
+    if (currentBindCount >= totalQuota) {
+      return NextResponse.json(
+        errorResponse(
+          '绑定店铺数量已达配额上限，请升级套餐或通过邀请好友获得更多配额'
+        ),
+        {
+          status: 400,
+        }
+      );
+    }
 
     const body = await request.json();
     const { mallId, mallName } = body;

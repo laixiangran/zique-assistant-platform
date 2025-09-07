@@ -11,8 +11,12 @@ import {
   Popconfirm,
   Modal,
   Input,
+  Alert,
+  Statistic,
+  Row,
+  Col,
 } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, PlusOutlined, ShopOutlined } from '@ant-design/icons';
 import { mallsAPI } from '../../services';
 
 interface Mall {
@@ -22,6 +26,20 @@ interface Mall {
   mallName: string;
   createdTime: string;
   updatedTime: string;
+}
+
+interface QuotaInfo {
+  totalQuota: number;
+  currentBindCount: number;
+  remainingQuota: number;
+  packageQuota: number;
+  rewardQuota: number;
+  canBind: boolean;
+  packageInfo: {
+    id: number;
+    packageName: string;
+    expireTime: string;
+  } | null;
 }
 
 export default function MallsPage() {
@@ -36,6 +54,28 @@ export default function MallsPage() {
   });
   const [searchForm] = Form.useForm();
   const [searchParams, setSearchParams] = useState<any>({});
+  const [quotaInfo, setQuotaInfo] = useState<QuotaInfo | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+
+  // 获取店铺配额信息
+  const fetchQuotaInfo = async () => {
+    setQuotaLoading(true);
+    try {
+      const response = await mallsAPI.getMallQuota();
+      const data = response.data;
+
+      if (data.success) {
+        setQuotaInfo(data.data);
+      } else {
+        message.error(data.message || '获取配额信息失败');
+      }
+    } catch (error) {
+      console.error('获取配额信息失败:', error);
+      message.error('获取配额信息失败');
+    } finally {
+      setQuotaLoading(false);
+    }
+  };
 
   // 获取店铺列表
   const fetchMalls = async (pageIndex = 1, pageSize = 10, params = {}) => {
@@ -75,6 +115,7 @@ export default function MallsPage() {
       if (data.success) {
         message.success('店铺删除成功');
         fetchMalls(pagination.current, pagination.pageSize, searchParams);
+        fetchQuotaInfo(); // 刷新配额信息
       } else {
         message.error(data.message || '店铺删除失败');
       }
@@ -84,7 +125,7 @@ export default function MallsPage() {
     }
   };
 
-  // 新增店铺
+  // 绑定店铺
   const handleAddMall = async (values: any) => {
     try {
       const response = await mallsAPI.createMall(values);
@@ -95,6 +136,7 @@ export default function MallsPage() {
         setModalVisible(false);
         form.resetFields();
         fetchMalls(pagination.current, pagination.pageSize, searchParams);
+        fetchQuotaInfo(); // 刷新配额信息
       } else {
         message.error(data.message || '店铺添加失败');
       }
@@ -180,10 +222,66 @@ export default function MallsPage() {
 
   useEffect(() => {
     fetchMalls();
+    fetchQuotaInfo();
   }, []);
 
   return (
     <>
+      {/* 配额信息展示 */}
+      <Card style={{ marginBottom: 16 }} loading={quotaLoading}>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Statistic
+              title='总配额'
+              value={quotaInfo?.totalQuota || 0}
+              prefix={<ShopOutlined />}
+              suffix='个店铺'
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title='已绑定'
+              value={quotaInfo?.currentBindCount || 0}
+              prefix={<ShopOutlined />}
+              suffix='个店铺'
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title='剩余配额'
+              value={quotaInfo?.remainingQuota || 0}
+              prefix={<ShopOutlined />}
+              suffix='个店铺'
+              valueStyle={{ color: quotaInfo?.canBind ? '#52c41a' : '#ff4d4f' }}
+            />
+          </Col>
+          <Col span={6}>
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}
+              >
+                配额来源
+              </div>
+              <div style={{ fontSize: '12px', color: '#999' }}>
+                套餐配额：{quotaInfo?.packageQuota || 0}个
+                <br />
+                奖励配额：{quotaInfo?.rewardQuota || 0}个
+              </div>
+            </div>
+          </Col>
+        </Row>
+        {quotaInfo && !quotaInfo.canBind && (
+          <Alert
+            message='店铺绑定数量已达上限'
+            description='您当前已绑定的店铺数量已达到套餐配额上限，如需绑定更多店铺，请升级套餐或通过邀请好友获得更多配额。'
+            type='warning'
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        )}
+      </Card>
+
       <Card>
         <div style={{ marginBottom: 16 }}>
           <Form
@@ -208,9 +306,15 @@ export default function MallsPage() {
             type='primary'
             icon={<PlusOutlined />}
             onClick={() => setModalVisible(true)}
+            disabled={!quotaInfo?.canBind}
           >
-            新增店铺
+            绑定店铺
           </Button>
+          {!quotaInfo?.canBind && (
+            <span style={{ marginLeft: 8, color: '#ff4d4f', fontSize: '12px' }}>
+              已达配额上限
+            </span>
+          )}
         </div>
         <Table
           columns={columns}
@@ -230,7 +334,7 @@ export default function MallsPage() {
         />
       </Card>
       <Modal
-        title='新增店铺'
+        title='绑定店铺'
         open={modalVisible}
         onOk={handleModalOk}
         onCancel={handleModalCancel}

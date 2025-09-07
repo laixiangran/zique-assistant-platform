@@ -5,22 +5,20 @@ import Invitation from './Invitation';
 
 interface InvitationRewardAttributes {
   id: number;
-  inviterId: number;
   invitationId: number;
-  rewardType: 'free_shops' | 'discount' | 'cash' | 'points';
-  rewardValue: number;
-  rewardDescription: string;
+  userId: number;
+  rewardType: 'free_malls' | 'discount' | 'cash' | 'points';
+  rewardCount: number;
+  usedCount: number;
   status: 'pending' | 'granted' | 'expired';
-  grantedAt?: Date;
-  expiresAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  createdTime: Date;
+  updatedTime: Date;
 }
 
 interface InvitationRewardCreationAttributes
   extends Optional<
     InvitationRewardAttributes,
-    'id' | 'createdAt' | 'updatedAt'
+    'id' | 'createdTime' | 'updatedTime'
   > {}
 
 class InvitationReward
@@ -29,15 +27,14 @@ class InvitationReward
 {
   public id!: number;
   public inviterId!: number;
+  public userId!: number;
   public invitationId!: number;
-  public rewardType!: 'free_shops' | 'discount' | 'cash' | 'points';
-  public rewardValue!: number;
-  public rewardDescription!: string;
+  public rewardType!: 'free_malls' | 'discount' | 'cash' | 'points';
+  public rewardCount!: number;
+  public usedCount!: number;
   public status!: 'pending' | 'granted' | 'expired';
-  public grantedAt?: Date;
-  public expiresAt?: Date;
-  public createdAt!: Date;
-  public updatedAt!: Date;
+  public createdTime!: Date;
+  public updatedTime!: Date;
 }
 
 InvitationReward.init(
@@ -47,15 +44,15 @@ InvitationReward.init(
       autoIncrement: true,
       primaryKey: true,
     },
-    inviterId: {
+    userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: User,
         key: 'id',
       },
-      field: 'inviter_id',
-      comment: '邀请人ID',
+      field: 'user_id',
+      comment: '获奖用户ID',
     },
     invitationId: {
       type: DataTypes.INTEGER,
@@ -73,59 +70,47 @@ InvitationReward.init(
       field: 'reward_type',
       comment: '奖励类型：免费店铺、折扣、现金、积分',
     },
-    rewardValue: {
-      type: DataTypes.DECIMAL(10, 2),
+    rewardCount: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'reward_value',
-      comment: '奖励数值',
+      field: 'reward_count',
+      comment: '奖励数量',
     },
-    rewardDescription: {
-      type: DataTypes.STRING(255),
+    usedCount: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'reward_description',
-      comment: '奖励描述',
+      field: 'used_count',
+      comment: '已使用数量',
     },
     status: {
       type: DataTypes.ENUM('pending', 'granted', 'expired'),
       defaultValue: 'pending',
       comment: '奖励状态',
     },
-    grantedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'granted_at',
-      comment: '奖励发放时间',
-    },
-    expiresAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'expires_at',
-      comment: '奖励过期时间',
-    },
-    createdAt: {
+    createdTime: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
-      field: 'created_at',
+      field: 'created_time',
     },
-    updatedAt: {
+    updatedTime: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
-      field: 'updated_at',
+      field: 'updated_time',
     },
   },
   {
     sequelize,
     tableName: 'invitation_rewards',
     timestamps: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
+    createdAt: 'createdTime',
+    updatedAt: 'updatedTime',
   }
 );
 
 // 定义关联关系
 InvitationReward.belongsTo(User, {
-  foreignKey: 'inviterId',
-  as: 'inviter',
+  foreignKey: 'userId',
+  as: 'user',
 });
 
 InvitationReward.belongsTo(Invitation, {
@@ -134,8 +119,8 @@ InvitationReward.belongsTo(Invitation, {
 });
 
 User.hasMany(InvitationReward, {
-  foreignKey: 'inviterId',
-  as: 'invitationRewards',
+  foreignKey: 'userId',
+  as: 'user',
 });
 
 Invitation.hasMany(InvitationReward, {
