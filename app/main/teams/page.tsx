@@ -389,7 +389,13 @@ export default function SubAccountsPage() {
               },
               ({ getFieldValue }) => ({
                 validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
+                  const password = getFieldValue('password');
+                  // 编辑模式下，如果密码为空，确认密码也可以为空
+                  if (editingAccount && !password && !value) {
+                    return Promise.resolve();
+                  }
+                  // 密码和确认密码必须一致
+                  if (!value || password === value) {
                     return Promise.resolve();
                   }
                   return Promise.reject(new Error('两次输入的密码不一致'));
