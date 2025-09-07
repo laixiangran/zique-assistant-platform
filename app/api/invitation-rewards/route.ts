@@ -136,11 +136,11 @@ export async function POST(request: NextRequest) {
 
     if ((reward as any).reward_type === 'free_shop') {
       // 增加免费店铺数量
-      const currentFreeShopCount = (user as any).free_shop_count || 0;
+      const currentFreeMallCount = (user as any).free_mall_count || 0;
       const rewardValue = (reward as any).reward_value || 1;
 
       await user.update({
-        free_shop_count: currentFreeShopCount + rewardValue,
+        free_mall_count: currentFreeMallCount + rewardValue,
       } as any);
     }
 

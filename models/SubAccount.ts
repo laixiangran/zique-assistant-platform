@@ -80,6 +80,7 @@ SubAccount.init(
       type: DataTypes.STRING(20),
       allowNull: true,
     },
+
     lastLoginTime: {
       type: DataTypes.DATE,
       allowNull: true,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SubAccount, User, UserOperationLog } from '@/models';
+import { SubAccount, User, UserOperationLog, UserMallBinding } from '@/models';
 import {
   verifyToken,
   successResponse,
@@ -7,6 +7,7 @@ import {
   hashPassword,
   getClientIP,
   formatObjectDates,
+  authenticateRequest,
 } from '@/lib/utils';
 
 // 获取子账户列表
@@ -39,14 +40,18 @@ export async function GET(request: NextRequest) {
     // 获取查询参数
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const status = searchParams.get('status');
-    const role = searchParams.get('role');
+    const search = searchParams.get('search');
 
     // 构建查询条件
     const where: any = { parentUserId: userId };
-    if (status) where.status = status;
-    if (role) where.role = role;
+    if (status && status !== 'all') where.status = status;
+    if (search) {
+      where[require('sequelize').Op.or] = [
+        { username: { [require('sequelize').Op.like]: `%${search}%` } },
+      ];
+    }
 
     // 查询子账户列表
     const { count, rows } = await SubAccount.findAndCountAll({
@@ -54,17 +59,29 @@ export async function GET(request: NextRequest) {
       attributes: {
         exclude: ['password'],
       },
-      limit,
-      offset: (page - 1) * limit,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
       order: [['createdTime', 'DESC']],
     });
 
-    // 处理数据
-    const processedRows = rows.map((row: any) => ({
-      ...formatObjectDates(row.toJSON()),
-      responsible_shops: JSON.parse(row.responsible_shops || '[]'),
-      permissions: JSON.parse(row.permissions || '[]'),
-    }));
+    // 处理数据并查询每个子账户的店铺绑定
+    const processedRows = await Promise.all(
+      rows.map(async (row: any) => {
+        // 查询子账户的店铺绑定
+        const mallBindings = await UserMallBinding.findAll({
+          where: { userId: row.id },
+          attributes: ['mallId', 'mallName'],
+        });
+
+        return {
+          ...formatObjectDates(row.toJSON()),
+          responsibleMalls: mallBindings.map((binding) => ({
+            mallId: binding.mallId,
+            mallName: binding.mallName,
+          })),
+        };
+      })
+    );
 
     return NextResponse.json(
       successResponse(
@@ -73,8 +90,8 @@ export async function GET(request: NextRequest) {
           pagination: {
             total: count,
             page,
-            limit,
-            pages: Math.ceil(count / limit),
+            pageSize,
+            pages: Math.ceil(count / pageSize),
           },
         },
         '获取子账户列表成功'
@@ -91,38 +108,71 @@ export async function GET(request: NextRequest) {
 // 创建子账户
 export async function POST(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
-    }
-
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
+    // 统一身份验证
+    const authResult = await authenticateRequest(request);
+    if (!authResult.success) {
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: 401,
+      });
     }
 
     // 只有主账户可以创建子账户
-    if (decoded.type !== 'user') {
+    if (authResult.user?.type !== 'user') {
       return NextResponse.json(errorResponse('只有主账户可以创建子账户'), {
         status: 403,
       });
     }
 
-    const userId = decoded.userId;
+    const userId = authResult.user?.userId;
 
-    const body = await request.json();
+    // 解析请求体
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return NextResponse.json(errorResponse('请求数据格式错误'), {
+        status: 400,
+      });
+    }
+
     const {
       username,
       password,
-      responsible_shops = [],
-      role = 'operator',
-      permissions = [],
+      responsibleMalls = [],
+      status = 'active',
     } = body;
+
+    // 详细数据验证
+    const validationErrors = [];
+
+    if (
+      !username ||
+      typeof username !== 'string' ||
+      username.trim().length < 3
+    ) {
+      validationErrors.push('用户名必须是至少3个字符的字符串');
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      validationErrors.push('密码必须是至少6个字符的字符串');
+    }
+
+    if (responsibleMalls && !Array.isArray(responsibleMalls)) {
+      validationErrors.push('负责店铺必须是数组格式');
+    }
+
+    if (!['active', 'inactive'].includes(status)) {
+      validationErrors.push('状态必须是active或inactive');
+    }
+
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        errorResponse(`数据验证失败: ${validationErrors.join(', ')}`),
+        {
+          status: 400,
+        }
+      );
+    }
 
     // 验证必填字段
     if (!username || !password) {
@@ -152,12 +202,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 验证角色
-    const validRoles = ['admin', 'manager', 'operator'];
-    if (!validRoles.includes(role)) {
-      return NextResponse.json(errorResponse('无效的角色类型'), {
-        status: 400,
-      });
+    // 验证状态
+    const validStatuses = ['active', 'inactive'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(errorResponse('无效的状态'), { status: 400 });
     }
 
     // 检查用户名是否已存在（主账户和子账户都要检查）
@@ -181,11 +229,30 @@ export async function POST(request: NextRequest) {
       parentUserId: userId,
       username,
       password: hashedPassword,
-      responsible_shops: JSON.stringify(responsible_shops),
-      role,
-      permissions: JSON.stringify(permissions),
-      status: 'active',
+      status,
     } as any);
+
+    // 为子账户创建店铺绑定关系
+    if (responsibleMalls && responsibleMalls.length > 0) {
+      // 获取主账户的店铺绑定信息
+      const parentMallBindings = await UserMallBinding.findAll({
+        where: {
+          userId: userId,
+          mallId: responsibleMalls,
+        },
+      });
+
+      // 为子账户创建相应的店铺绑定
+      const subAccountBindings = parentMallBindings.map((binding) => ({
+        userId: Number(subAccount.id),
+        mallId: binding.mallId,
+        mallName: binding.mallName,
+      }));
+
+      if (subAccountBindings.length > 0) {
+        await UserMallBinding.bulkCreate(subAccountBindings);
+      }
+    }
 
     // 记录操作日志
     await UserOperationLog.create({
@@ -196,21 +263,23 @@ export async function POST(request: NextRequest) {
       targetId: Number(subAccount.id),
       requestData: JSON.stringify({
         username,
-        role,
-        responsible_shops,
-        permissions,
+        responsibleMalls,
       }),
       ipAddress: getClientIP(request),
       userAgent: request.headers.get('user-agent') || '',
       status: 'success',
     } as any);
 
+    // 查询创建的子账户的店铺绑定
+    const mallBindings = await UserMallBinding.findAll({
+      where: { userId: subAccount.id },
+      attributes: ['mallId', 'mallName'],
+    });
+
     // 返回结果（不包含密码）
     const result = {
       ...formatObjectDates(subAccount.toJSON()),
-      responsible_shops: JSON.parse(
-        (subAccount as any).responsible_shops || '[]'
-      ),
+      responsibleMalls: mallBindings.map((binding) => binding.mallId),
       permissions: JSON.parse((subAccount as any).permissions || '[]'),
     };
     delete (result as any).password;

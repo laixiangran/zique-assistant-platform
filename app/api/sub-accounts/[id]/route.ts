@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SubAccount, User, UserOperationLog } from '@/models';
+import { SubAccount, User, UserOperationLog, UserMallBinding } from '@/models';
 import {
   verifyToken,
   successResponse,
@@ -55,13 +55,16 @@ export async function GET(
       return NextResponse.json(errorResponse('子账户不存在'), { status: 404 });
     }
 
+    // 查询子账户的店铺绑定
+    const mallBindings = await UserMallBinding.findAll({
+      where: { userId: subAccountId },
+      attributes: ['mallId', 'mallName'],
+    });
+
     // 处理数据
     const result = {
       ...formatObjectDates(subAccount.toJSON()),
-      responsible_shops: JSON.parse(
-        (subAccount as any).responsible_shops || '[]'
-      ),
-      permissions: JSON.parse((subAccount as any).permissions || '[]'),
+      responsibleMalls: mallBindings.map((binding) => binding.mallId),
     };
 
     return NextResponse.json(
@@ -106,9 +109,64 @@ export async function PUT(
     const userId = decoded.userId;
     const subAccountId = params.id;
 
-    const body = await request.json();
-    const { username, password, responsible_shops, role, permissions, status } =
-      body;
+    // 验证子账户ID格式
+    if (
+      !subAccountId ||
+      isNaN(Number(subAccountId)) ||
+      Number(subAccountId) <= 0
+    ) {
+      return NextResponse.json(errorResponse('无效的子账户ID'), {
+        status: 400,
+      });
+    }
+
+    // 获取请求数据并验证
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return NextResponse.json(errorResponse('请求数据格式错误'), {
+        status: 400,
+      });
+    }
+
+    const { username, password, responsibleMalls, status } = body;
+
+    // 数据验证
+    const validationErrors = [];
+
+    if (
+      username !== undefined &&
+      (typeof username !== 'string' ||
+        username.trim().length < 3 ||
+        username.trim().length > 20)
+    ) {
+      validationErrors.push('用户名必须是3-20个字符的字符串');
+    }
+
+    if (
+      password !== undefined &&
+      (typeof password !== 'string' ||
+        password.length < 6 ||
+        password.length > 20)
+    ) {
+      validationErrors.push('密码必须是6-20个字符的字符串');
+    }
+
+    if (responsibleMalls !== undefined && !Array.isArray(responsibleMalls)) {
+      validationErrors.push('负责店铺必须是数组格式');
+    }
+
+    if (status !== undefined && !['active', 'inactive'].includes(status)) {
+      validationErrors.push('状态必须是active或inactive');
+    }
+
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        errorResponse(`数据验证失败: ${validationErrors.join(', ')}`),
+        { status: 400 }
+      );
+    }
 
     // 查询子账户
     const subAccount = await SubAccount.findOne({
@@ -177,26 +235,8 @@ export async function PUT(
       updateData.password = await hashPassword(password);
     }
 
-    // 更新角色
-    if (role) {
-      const validRoles = ['admin', 'manager', 'operator'];
-      if (!validRoles.includes(role)) {
-        return NextResponse.json(errorResponse('无效的角色类型'), {
-          status: 400,
-        });
-      }
-      updateData.role = role;
-    }
-
-    // 更新负责店铺
-    if (responsible_shops !== undefined) {
-      updateData.responsible_shops = JSON.stringify(responsible_shops);
-    }
-
-    // 更新权限
-    if (permissions !== undefined) {
-      updateData.permissions = JSON.stringify(permissions);
-    }
+    // 注意：responsibleMalls字段不再直接存储在SubAccount表中
+    // 店铺绑定关系通过UserMallBinding表管理
 
     // 更新状态
     if (status) {
@@ -209,6 +249,38 @@ export async function PUT(
 
     // 执行更新
     await subAccount.update(updateData);
+
+    // 如果更新了负责店铺，同步更新user_mall_bindings表
+    if (responsibleMalls !== undefined) {
+      // 删除子账户现有的店铺绑定
+      await UserMallBinding.destroy({
+        where: {
+          userId: Number(subAccountId),
+        },
+      });
+
+      // 为子账户创建新的店铺绑定关系
+      if (responsibleMalls && responsibleMalls.length > 0) {
+        // 获取主账户的店铺绑定信息
+        const parentMallBindings = await UserMallBinding.findAll({
+          where: {
+            userId: userId,
+            mallId: responsibleMalls,
+          },
+        });
+
+        // 为子账户创建相应的店铺绑定
+        const subAccountBindings = parentMallBindings.map((binding) => ({
+          userId: Number(subAccountId),
+          mallId: binding.mallId,
+          mallName: binding.mallName,
+        }));
+
+        if (subAccountBindings.length > 0) {
+          await UserMallBinding.bulkCreate(subAccountBindings);
+        }
+      }
+    }
 
     // 记录操作日志
     await UserOperationLog.create({
@@ -230,13 +302,16 @@ export async function PUT(
       },
     });
 
+    // 查询更新后的子账户店铺绑定
+    const updatedMallBindings = await UserMallBinding.findAll({
+      where: { userId: subAccountId },
+      attributes: ['mallId', 'mallName'],
+    });
+
     // 处理数据
     const result = {
       ...formatObjectDates(updatedSubAccount?.toJSON()),
-      responsible_shops: JSON.parse(
-        (updatedSubAccount as any)?.responsible_shops || '[]'
-      ),
-      permissions: JSON.parse((updatedSubAccount as any)?.permissions || '[]'),
+      responsibleMalls: updatedMallBindings.map((binding) => binding.mallId),
     };
 
     return NextResponse.json(
@@ -281,6 +356,17 @@ export async function DELETE(
     const userId = decoded.userId;
     const subAccountId = params.id;
 
+    // 验证子账户ID格式
+    if (
+      !subAccountId ||
+      isNaN(Number(subAccountId)) ||
+      Number(subAccountId) <= 0
+    ) {
+      return NextResponse.json(errorResponse('无效的子账户ID'), {
+        status: 400,
+      });
+    }
+
     // 查询子账户
     const subAccount = await SubAccount.findOne({
       where: {
@@ -294,6 +380,13 @@ export async function DELETE(
     }
 
     const username = (subAccount as any).username;
+
+    // 删除子账户的店铺绑定关系
+    await UserMallBinding.destroy({
+      where: {
+        userId: Number(subAccountId),
+      },
+    });
 
     // 删除子账户
     await subAccount.destroy();

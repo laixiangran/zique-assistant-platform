@@ -76,7 +76,7 @@ UserMallBinding.init(
       {
         unique: true,
         fields: ['user_id', 'mall_id'],
-        name: 'unique_user_shop_binding',
+        name: 'unique_user_mall_binding',
       },
     ],
   }

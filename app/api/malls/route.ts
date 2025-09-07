@@ -183,7 +183,7 @@ export async function DELETE(request: NextRequest) {
     // 记录操作日志
     await UserOperationLog.create({
       userId,
-      operationType: 'shop_unbinding',
+      operationType: 'mall_unbinding',
       operationDesc: `删除店铺：${shopBinding.mallName}`,
       ipAddress: getClientIP(request),
       userAgent: request.headers.get('user-agent') || '',

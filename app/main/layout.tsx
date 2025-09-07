@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { Layout, Menu, Avatar, Dropdown, Button, message, Tag } from 'antd';
 import {
   ShopOutlined,
@@ -16,6 +17,7 @@ import {
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { authAPI } from '../services';
+import logo from '../../public/logo.png';
 
 const { Header, Sider, Content } = Layout;
 
@@ -24,8 +26,8 @@ interface UserInfo {
   username: string;
   phone?: string;
   email?: string;
-  free_shop_count?: number;
-  used_shop_count?: number;
+  free_mall_count?: number;
+  used_mall_count?: number;
   accountType: 'user' | 'sub_account';
 }
 
@@ -146,7 +148,14 @@ export default function mainLayout({
             width: '100%',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Image
+              className='logo-img'
+              src={logo}
+              alt='logo'
+              width={32}
+              height={32}
+            />
             <h1
               style={{
                 fontSize: '20px',

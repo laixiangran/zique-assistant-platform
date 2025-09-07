@@ -68,14 +68,14 @@ export async function POST(request: NextRequest) {
       description,
       price,
       duration_months,
-      max_shop_count,
+      max_mall_count,
       features = [],
       is_enabled = true,
       sort_order = 0,
     } = body;
 
     // 验证必填字段
-    if (!name || price === undefined || !duration_months || !max_shop_count) {
+    if (!name || price === undefined || !duration_months || !max_mall_count) {
       return NextResponse.json(errorResponse('请填写完整的套餐信息'), {
         status: 400,
       });
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (typeof max_shop_count !== 'number' || max_shop_count <= 0) {
+    if (typeof max_mall_count !== 'number' || max_mall_count <= 0) {
       return NextResponse.json(errorResponse('店铺数量必须为正数'), {
         status: 400,
       });
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       description,
       price,
       duration_months,
-      max_shop_count,
+      max_mall_count,
       features: JSON.stringify(features),
       is_enabled,
       sort_order,
