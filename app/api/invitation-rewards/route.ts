@@ -35,16 +35,9 @@ export async function GET(request: NextRequest) {
     // 查询邀请奖励记录
     const { count, rows } = await InvitationReward.findAndCountAll({
       where,
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'username', 'phone', 'email'],
-        },
-      ],
       limit,
       offset: (page - 1) * limit,
-      order: [['created_time', 'DESC']],
+      order: [['createdTime', 'DESC']],
     });
 
     // 计算统计数据

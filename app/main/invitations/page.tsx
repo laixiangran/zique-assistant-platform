@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, message, Statistic, Row, Col, Alert } from 'antd';
+import {
+  Card,
+  Table,
+  Button,
+  message,
+  Statistic,
+  Row,
+  Col,
+  Alert,
+  Tabs,
+} from 'antd';
 import {
   UserAddOutlined,
   ShareAltOutlined,
@@ -41,27 +51,6 @@ interface InvitationReward {
   };
   created_at: string;
   claimed_at?: string;
-}
-
-interface CombinedRecord {
-  id: string;
-  type: 'invitation' | 'reward';
-  invitation_code?: string;
-  invitation_type?: string;
-  invitation_status?: string;
-  reward_type?: string;
-  reward_value?: number;
-  reward_status?: string;
-  invitee?: {
-    id: number;
-    username: string;
-    phone?: string;
-    email?: string;
-  };
-  created_at: string;
-  used_at?: string;
-  claimed_at?: string;
-  original_data: Invitation | InvitationReward;
 }
 
 interface InvitationStats {
@@ -125,30 +114,20 @@ export default function InvitationsPage() {
     reward_type: '',
   });
 
-  const [combinedRecords, setCombinedRecords] = useState<CombinedRecord[]>([]);
-  const [combinedPagination, setCombinedPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
-  const [combinedFilters, setCombinedFilters] = useState({
-    type: undefined as string | undefined,
-    status: undefined as string | undefined,
-  });
-
   // 获取用户邀请信息
   const fetchUserInvitationInfo = async () => {
     try {
       setInfoLoading(true);
-      
+
       // 获取token用于身份验证
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
+      const token =
+        localStorage.getItem('token') || sessionStorage.getItem('token');
+
       const response = await fetch('/api/invitations/user-info', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
       const data = await response.json();
 
@@ -259,7 +238,6 @@ export default function InvitationsPage() {
       if (data.success) {
         message.success('奖励领取成功');
         fetchRewards(); // 刷新奖励记录
-        getCombinedRecords(); // 刷新合并记录
       } else {
         message.error(data.message || '领取奖励失败');
       }
@@ -271,121 +249,81 @@ export default function InvitationsPage() {
     }
   };
 
-  // 获取合并记录
-  const getCombinedRecords = async () => {
-    try {
-      setLoading(true);
-      const combined: CombinedRecord[] = [];
-
-      // 添加邀请记录
-      invitations.forEach((invitation: Invitation) => {
-        combined.push({
-          id: `invitation-${invitation.id}`,
-          type: 'invitation',
-          invitation_code: invitation.invitation_code,
-          invitation_type: invitation.type,
-          invitation_status: invitation.status,
-          invitee: invitation.invitee,
-          created_at: invitation.created_at,
-          used_at: invitation.used_at,
-          original_data: invitation,
-        });
-      });
-
-      // 添加奖励记录
-      rewards.forEach((reward: InvitationReward) => {
-        combined.push({
-          id: `reward-${reward.id}`,
-          type: 'reward',
-          reward_type: reward.reward_type,
-          reward_value: reward.reward_value,
-          reward_status: reward.status,
-          invitee: reward.invitee,
-          created_at: reward.created_at,
-          claimed_at: reward.claimed_at,
-          original_data: reward,
-        });
-      });
-
-      // 按创建时间排序
-      combined.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-
-      // 应用筛选
-      let filteredRecords = combined;
-      if (combinedFilters.type) {
-        filteredRecords = filteredRecords.filter(
-          (record) => record.type === combinedFilters.type
-        );
-      }
-      if (combinedFilters.status) {
-        filteredRecords = filteredRecords.filter((record) => {
-          if (record.type === 'invitation') {
-            return record.invitation_status === combinedFilters.status;
-          } else {
-            return record.reward_status === combinedFilters.status;
-          }
-        });
-      }
-
-      // 分页处理
-      const startIndex =
-        (combinedPagination.current - 1) * combinedPagination.pageSize;
-      const endIndex = startIndex + combinedPagination.pageSize;
-      const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
-
-      setCombinedRecords(paginatedRecords);
-      setCombinedPagination((prev) => ({
-        ...prev,
-        total: filteredRecords.length,
-      }));
-    } catch (error: any) {
-      message.error(error.message || '获取记录失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchUserInvitationInfo();
-    fetchInvitations();
-    fetchRewards();
   }, []);
 
   useEffect(() => {
-    getCombinedRecords();
-  }, [combinedPagination.current, combinedFilters]);
+    fetchInvitations();
+  }, [invitationPagination.current, invitationFilters]);
 
   useEffect(() => {
-    getCombinedRecords();
-  }, [invitations, rewards, combinedFilters, combinedPagination.current]);
+    fetchRewards();
+  }, [rewardPagination.current, rewardFilters]);
 
-  const columns = [
+  // 邀请记录表格列
+  const invitationColumns = [
     {
       title: '被邀请用户',
-      dataIndex: 'inviteeName',
-      key: 'inviteeName',
-      render: (inviteeName: string) => inviteeName,
+      dataIndex: 'invitee',
+      key: 'invitee',
+      render: (invitee: any) => invitee?.username || '-',
+    },
+    {
+      title: '邀请时间',
+      dataIndex: 'createdTime',
+      key: 'createdTime',
+    },
+  ];
+
+  // 奖励记录表格列
+  const rewardColumns = [
+    {
+      title: '被邀请用户',
+      dataIndex: 'invitee',
+      key: 'invitee',
+      render: (invitee: any) => invitee?.username || '-',
     },
     {
       title: '奖励类型',
-      dataIndex: 'rewardType',
-      key: 'rewardType',
-      render: (rewardType: string) => rewardType,
+      dataIndex: 'reward_type',
+      key: 'reward_type',
+      render: (type: string) => {
+        const typeMap: { [key: string]: string } = {
+          points: '积分',
+          coupon: '优惠券',
+          cash: '现金',
+          shop_quota: '店铺配额',
+        };
+        return typeMap[type] || type;
+      },
     },
     {
       title: '奖励数量',
-      dataIndex: 'rewardCount',
-      key: 'rewardCount',
-      render: (rewardCount: number) => rewardCount,
+      dataIndex: 'reward_value',
+      key: 'reward_value',
+      render: (value: number) => value || '-',
+    },
+    {
+      title: '奖励状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => {
+        const statusMap: { [key: string]: string } = {
+          pending: '待领取',
+          claimed: '已领取',
+          expired: '已过期',
+        };
+        return statusMap[status] || status;
+      },
     },
     {
       title: '奖励时间',
-      dataIndex: 'createdTime',
-      key: 'createdTime',
-      render: (date: string) => date,
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (time: string) => {
+        return time ? new Date(time).toLocaleString() : '-';
+      },
     },
   ];
 
@@ -456,27 +394,66 @@ export default function InvitationsPage() {
         />
       </Card>
       <Card>
-        <Table
-          columns={columns}
-          dataSource={combinedRecords}
-          rowKey='id'
-          loading={loading}
-          pagination={{
-            current: combinedPagination.current,
-            pageSize: combinedPagination.pageSize,
-            total: combinedPagination.total,
-            onChange: (page, pageSize) => {
-              setCombinedPagination((prev) => ({
-                ...prev,
-                current: page,
-                pageSize: pageSize || 10,
-              }));
+        <Tabs
+          defaultActiveKey='invitations'
+          items={[
+            {
+              key: 'invitations',
+              label: `邀请记录 (${invitations.length})`,
+              children: (
+                <Table
+                  columns={invitationColumns}
+                  dataSource={invitations}
+                  rowKey='id'
+                  loading={loading}
+                  pagination={{
+                    current: invitationPagination.current,
+                    pageSize: invitationPagination.pageSize,
+                    total: invitationPagination.total,
+                    onChange: (page, pageSize) => {
+                      setInvitationPagination((prev) => ({
+                        ...prev,
+                        current: page,
+                        pageSize: pageSize || 10,
+                      }));
+                    },
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) =>
+                      `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+                  }}
+                />
+              ),
             },
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
-          }}
+            {
+              key: 'rewards',
+              label: `奖励记录 (${rewards.length})`,
+              children: (
+                <Table
+                  columns={rewardColumns}
+                  dataSource={rewards}
+                  rowKey='id'
+                  loading={loading}
+                  pagination={{
+                    current: rewardPagination.current,
+                    pageSize: rewardPagination.pageSize,
+                    total: rewardPagination.total,
+                    onChange: (page, pageSize) => {
+                      setRewardPagination((prev) => ({
+                        ...prev,
+                        current: page,
+                        pageSize: pageSize || 10,
+                      }));
+                    },
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) =>
+                      `第 ${range[0]}-${range[1]} 条，共 ${total} 条`,
+                  }}
+                />
+              ),
+            },
+          ]}
         />
       </Card>
     </>
