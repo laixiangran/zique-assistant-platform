@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SubAccount, User, UserOperationLog, UserMallBinding } from '@/models';
 import {
-  verifyToken,
   successResponse,
   errorResponse,
   hashPassword,
   getClientIP,
   formatObjectDates,
-  authenticateRequest,
   generateRandomPassword,
   authenticateMainAccount,
 } from '@/lib/utils';

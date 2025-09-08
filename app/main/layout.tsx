@@ -71,7 +71,7 @@ export default function mainLayout({
   const checkAuth = async () => {
     try {
       const response = await authAPI.getCurrentUser();
-      setUserInfo(response.data.data);
+      setUserInfo(response.data);
       // 获取用户套餐信息
       fetchUserPackages();
     } catch (error) {

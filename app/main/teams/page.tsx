@@ -22,7 +22,7 @@ import {
   CopyOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { subAccountsAPI, mallsAPI } from '../../services';
+import { subAccountsAPI, mallsAPI, authAPI } from '../../services';
 
 import { useRouter } from 'next/navigation';
 
@@ -48,6 +48,7 @@ export default function SubAccountsPage() {
     inactive: 0,
   });
   const [searchUsername, setSearchUsername] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // 获取子账户列表
   const fetchSubAccounts = async (page = 1, pageSize = 10, username = '') => {
@@ -91,10 +92,24 @@ export default function SubAccountsPage() {
     setMalls(data.malls);
   };
 
+  // 获取当前用户信息
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await authAPI.getCurrentUser();
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+    }
+  };
+
   // 提交表单
   const handleSubmit = async (values: any) => {
     const requestData = {
       ...values,
+      // 在创建子账户时拼接用户名
+      username: editingAccount
+        ? values.username
+        : `${currentUser?.username || 'main'}_${values.username}`,
       responsibleMalls: (values.responsibleMalls || []).map((key: string) =>
         parseInt(key)
       ),
@@ -422,6 +437,7 @@ export default function SubAccountsPage() {
   useEffect(() => {
     fetchSubAccounts(1, 10, '');
     fetchMalls();
+    fetchCurrentUser();
   }, []);
 
   return (
@@ -488,6 +504,17 @@ export default function SubAccountsPage() {
         destroyOnHidden
       >
         <Form form={form} layout='vertical' onFinish={handleSubmit}>
+          {!editingAccount && (
+            <Form.Item>
+              <Alert
+                message='密码将由系统自动生成'
+                description='创建成功后将显示8位随机密码，请及时记录'
+                type='info'
+                showIcon
+              />
+            </Form.Item>
+          )}
+
           <Form.Item
             label='用户名'
             name='username'
@@ -500,20 +527,13 @@ export default function SubAccountsPage() {
               },
             ]}
           >
-            <Input placeholder='请输入用户名' />
+            <Input
+              addonBefore={
+                currentUser?.username ? `${currentUser.username}_` : '主账户_'
+              }
+              placeholder='请输入子账户用户名'
+            />
           </Form.Item>
-
-          {!editingAccount && (
-            <Form.Item>
-              <Alert
-                message='密码将由系统自动生成'
-                description='创建成功后将显示8位随机密码，请及时记录'
-                type='info'
-                showIcon
-                style={{ marginBottom: 16 }}
-              />
-            </Form.Item>
-          )}
 
           <Form.Item
             label='负责店铺'
