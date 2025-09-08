@@ -41,19 +41,8 @@ export default function InvitationsPage() {
   const fetchUserInvitationInfo = async () => {
     try {
       setInfoLoading(true);
-
-      // 获取token用于身份验证
-      const token =
-        localStorage.getItem('token') || sessionStorage.getItem('token');
-
-      const response = await fetch('/api/invitations/user-info', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
-
+      const response = await invitationsAPI.getInvitationsInfo();
+      const data = response.data;
       if (data.success) {
         const baseUrl = window.location.origin;
         const invitationLink = `${baseUrl}/register?invitationCode=${data.data.invitationCode}`;
@@ -77,7 +66,7 @@ export default function InvitationsPage() {
     try {
       setLoading(true);
       const response = await invitationsAPI.getInvitations({
-        page: invitationPagination.current,
+        pageIndex: invitationPagination.current,
         pageSize: invitationPagination.pageSize,
       });
 

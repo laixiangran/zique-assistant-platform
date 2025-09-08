@@ -14,7 +14,7 @@ export default function Home() {
         const response = await fetch('/api/auth/me');
         if (response.ok) {
           // 已登录，跳转到仪表盘
-          router.push('/dashboard');
+          router.push('/main/home');
         } else {
           // 未登录，跳转到登录页
           router.push('/login');

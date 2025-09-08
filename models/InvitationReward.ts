@@ -7,6 +7,8 @@ interface InvitationRewardAttributes {
   id: number;
   invitationId: number;
   userId: number;
+  mallId?: string;
+  mallName?: string;
   rewardType: 'free_malls' | 'discount' | 'cash' | 'points';
   rewardCount: number;
   usedCount: number;
@@ -28,6 +30,8 @@ class InvitationReward
   public id!: number;
   public inviterId!: number;
   public userId!: number;
+  public mallId?: string;
+  public mallName?: string;
   public invitationId!: number;
   public rewardType!: 'free_malls' | 'discount' | 'cash' | 'points';
   public rewardCount!: number;
@@ -44,6 +48,16 @@ InvitationReward.init(
       autoIncrement: true,
       primaryKey: true,
     },
+    invitationId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: Invitation,
+        key: 'id',
+      },
+      field: 'invitation_id',
+      comment: '邀请记录ID',
+    },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -54,15 +68,17 @@ InvitationReward.init(
       field: 'user_id',
       comment: '获奖用户ID',
     },
-    invitationId: {
-      type: DataTypes.INTEGER,
+    mallId: {
+      type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: Invitation,
-        key: 'id',
-      },
-      field: 'invitation_id',
-      comment: '邀请记录ID',
+      field: 'mall_id',
+      comment: '对方绑定店铺ID',
+    },
+    mallName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: 'mall_name',
+      comment: '对方绑定店铺名称',
     },
     rewardType: {
       type: DataTypes.ENUM('free_malls', 'discount', 'cash', 'points'),

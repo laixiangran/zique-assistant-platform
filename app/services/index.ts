@@ -78,17 +78,23 @@ export const mallsAPI = {
 
 // 邀请相关API
 export const invitationsAPI = {
-  // 获取邀请列表
+  // 获取当前用户邀请数据
+  getInvitationsInfo: (signal?: AbortSignal) => {
+    return request.get('/invitations/info', { signal });
+  },
+
+  // 获取当前用户邀请列表
   getInvitations: (
     params: {
-      page?: number;
+      pageIndex?: number;
       pageSize?: number;
       search?: string;
     },
     signal?: AbortSignal
   ) => {
     const queryParams = new URLSearchParams();
-    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.pageIndex)
+      queryParams.append('pageIndex', params.pageIndex.toString());
     if (params.pageSize)
       queryParams.append('pageSize', params.pageSize.toString());
     if (params.search) queryParams.append('search', params.search);

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userId = authResult.user!.userId;
+    const userId = authResult.user?.userId;
 
     // 获取用户信息
     const user = await User.findByPk(userId);
