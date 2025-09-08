@@ -90,6 +90,18 @@ export const authAPI = {
 
   // 登出
   logout: () => request.post('/auth/logout'),
+
+  // 忘记密码
+  forgotPassword: (email: string) =>
+    request.post('/auth/forgot-password', { email }),
+
+  // 验证重置密码令牌
+  validateResetToken: (token: string) =>
+    request.post('/auth/validate-reset-token', { token }),
+
+  // 重置密码
+  resetPassword: (token: string, password: string) =>
+    request.post('/auth/reset-password', { token, password }),
 };
 
 // 店铺相关API

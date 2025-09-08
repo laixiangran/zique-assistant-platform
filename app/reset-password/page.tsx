@@ -3,8 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Form, Input, Button, Card, message } from 'antd';
-import { LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
-import Link from 'next/link';
+import {
+  LockOutlined,
+  EyeInvisibleOutlined,
+  EyeTwoTone,
+} from '@ant-design/icons';
+import { authAPI } from '../services';
 import './page.scss';
 
 interface ResetPasswordFormData {
@@ -30,24 +34,10 @@ export default function ResetPasswordPage() {
 
     const validateToken = async () => {
       try {
-        const response = await fetch('/api/auth/validate-reset-token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await response.json();
-        setTokenValid(response.ok);
-        
-        if (!response.ok) {
-          message.error(data.message || '重置链接无效或已过期');
-        }
+        await authAPI.validateResetToken(token);
+        setTokenValid(true);
       } catch (error) {
-        console.error('Token validation error:', error);
         setTokenValid(false);
-        message.error('验证失败，请重试');
       }
     };
 
@@ -62,32 +52,13 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          password: values.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setResetSuccess(true);
-        message.success('密码重置成功');
-        // 3秒后跳转到登录页
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
-      } else {
-        message.error(data.message || '密码重置失败，请重试');
-      }
-    } catch (error) {
-      console.error('Reset password error:', error);
-      message.error('网络错误，请重试');
+      await authAPI.resetPassword(token, values.password);
+      setResetSuccess(true);
+      message.success('密码重置成功');
+      // 3秒后跳转到登录页
+      setTimeout(() => {
+        router.push('/login');
+      }, 3000);
     } finally {
       setLoading(false);
     }
@@ -122,7 +93,10 @@ export default function ResetPasswordPage() {
             <h3>链接无效或已过期</h3>
             <p>重置密码链接无效或已过期，请重新申请重置密码。</p>
             <div className='actions'>
-              <Button type='primary' onClick={() => router.push('/forgot-password')}>
+              <Button
+                type='primary'
+                onClick={() => router.push('/forgot-password')}
+              >
                 重新申请
               </Button>
               <Button type='link' onClick={handleBackToLogin}>
@@ -164,10 +138,8 @@ export default function ResetPasswordPage() {
         </div>
 
         <div>
-          <p className='description'>
-            请输入您的新密码。
-          </p>
-          
+          <p className='description'>请输入您的新密码。</p>
+
           <Form
             form={form}
             name='reset-password'
@@ -187,10 +159,12 @@ export default function ResetPasswordPage() {
                 },
               ]}
             >
-              <Input.Password 
-                prefix={<LockOutlined />} 
+              <Input.Password
+                prefix={<LockOutlined />}
                 placeholder='新密码'
-                iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                iconRender={(visible) =>
+                  visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+                }
               />
             </Form.Item>
 
@@ -209,10 +183,12 @@ export default function ResetPasswordPage() {
                 }),
               ]}
             >
-              <Input.Password 
-                prefix={<LockOutlined />} 
+              <Input.Password
+                prefix={<LockOutlined />}
                 placeholder='确认新密码'
-                iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                iconRender={(visible) =>
+                  visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+                }
               />
             </Form.Item>
 

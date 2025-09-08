@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Form, Input, Button, Card, message } from 'antd';
 import { MailOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { authAPI } from '../services';
 import './page.scss';
 
 interface ForgotPasswordFormData {
@@ -20,25 +21,12 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (values: ForgotPasswordFormData) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setEmailSent(true);
-        message.success('重置密码邮件已发送，请检查您的邮箱');
-      } else {
-        message.error(data.message || '发送失败，请重试');
-      }
+      await authAPI.forgotPassword(values.email);
+      setEmailSent(true);
+      message.success('重置密码邮件已发送，请检查您的邮箱');
     } catch (error) {
       console.error('Forgot password error:', error);
-      message.error('网络错误，请重试');
+      // 错误消息已在services中处理，这里不需要再显示
     } finally {
       setLoading(false);
     }

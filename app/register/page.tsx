@@ -118,27 +118,18 @@ export default function RegisterPage() {
                 },
               ]}
             >
-              <Input prefix={<UserOutlined />} placeholder='用户名' />
-            </Form.Item>
-
-            <Form.Item
-              name='phone'
-              rules={[
-                { required: true, message: '请输入手机号' },
-                { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
-              ]}
-            >
-              <Input prefix={<PhoneOutlined />} placeholder='手机号' />
+              <Input prefix={<UserOutlined />} placeholder='请输入用户名' />
             </Form.Item>
 
             <Form.Item
               name='email'
+              help='用于找回密码，请务必输入正确的邮箱地址'
               rules={[
                 { required: true, message: '请输入邮箱' },
                 { type: 'email', message: '请输入有效的邮箱地址' },
               ]}
             >
-              <Input prefix={<MailOutlined />} placeholder='邮箱' />
+              <Input prefix={<MailOutlined />} placeholder='请输入邮箱地址' />
             </Form.Item>
 
             <Form.Item
@@ -149,7 +140,10 @@ export default function RegisterPage() {
                 { max: 20, message: '密码最多20个字符' },
               ]}
             >
-              <Input.Password prefix={<LockOutlined />} placeholder='密码' />
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder='请输入密码'
+              />
             </Form.Item>
 
             <Form.Item
@@ -169,15 +163,24 @@ export default function RegisterPage() {
             >
               <Input.Password
                 prefix={<LockOutlined />}
-                placeholder='确认密码'
+                placeholder='请确认密码'
               />
+            </Form.Item>
+
+            <Form.Item
+              name='phone'
+              rules={[
+                { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' },
+              ]}
+            >
+              <Input prefix={<PhoneOutlined />} placeholder='请输入手机号' />
             </Form.Item>
 
             <Form.Item
               name='invitationCode'
               rules={[{ len: 6, message: '邀请码为6位字符' }]}
             >
-              <Input placeholder='邀请码（可选）' />
+              <Input placeholder='请输入邀请码（可选）' />
             </Form.Item>
 
             <Form.Item>

@@ -119,7 +119,7 @@ export default function LoginPage() {
                 { min: 3, message: '用户名至少3个字符' },
               ]}
             >
-              <Input prefix={<UserOutlined />} placeholder='用户名' />
+              <Input prefix={<UserOutlined />} placeholder='请输入用户名' />
             </Form.Item>
 
             <Form.Item
@@ -129,7 +129,10 @@ export default function LoginPage() {
                 { min: 6, message: '密码至少6个字符' },
               ]}
             >
-              <Input.Password prefix={<LockOutlined />} placeholder='密码' />
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder='请输入密码'
+              />
             </Form.Item>
 
             <Form.Item>
