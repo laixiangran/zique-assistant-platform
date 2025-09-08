@@ -194,41 +194,45 @@ export default function MallsPage() {
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title='总配额'
+              title='总共可绑定店铺'
               value={quotaInfo?.totalQuota || 0}
               prefix={<ShopOutlined />}
-              suffix='个店铺'
+              suffix='个'
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title='已绑定'
+              title='已绑定店铺'
               value={quotaInfo?.currentBindCount || 0}
               prefix={<ShopOutlined />}
-              suffix='个店铺'
+              suffix='个'
               valueStyle={{ color: '#1890ff' }}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title='剩余配额'
+              title='剩余可绑定店铺'
               value={quotaInfo?.remainingQuota || 0}
               prefix={<ShopOutlined />}
-              suffix='个店铺'
+              suffix='个'
               valueStyle={{ color: quotaInfo?.canBind ? '#52c41a' : '#ff4d4f' }}
             />
           </Col>
           <Col span={6}>
             <div style={{ textAlign: 'center' }}>
               <div
-                style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}
+                style={{
+                  marginBottom: '4px',
+                  color: 'rgba(0, 0, 0, 0.45)',
+                  fontSize: '14px',
+                }}
               >
-                配额来源
+                店铺绑定数明细
               </div>
               <div style={{ fontSize: '12px', color: '#999' }}>
-                套餐配额：{quotaInfo?.packageQuota || 0}个
+                会员套餐：{quotaInfo?.packageQuota || 0}个
                 <br />
-                奖励配额：{quotaInfo?.rewardQuota || 0}个
+                邀请奖励：{quotaInfo?.rewardQuota || 0}个
               </div>
             </div>
           </Col>

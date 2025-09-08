@@ -97,7 +97,7 @@ export default function InvitationsPage() {
   // 邀请记录表格列
   const invitationColumns = [
     {
-      title: '被邀请用户',
+      title: '邀请用户',
       dataIndex: 'invitee',
       key: 'invitee',
       render: (invitee: any) => invitee?.username || '-',
@@ -116,23 +116,6 @@ export default function InvitationsPage() {
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title='我的邀请码'
-              value={userInvitationInfo.invitationCode}
-              prefix={<LinkOutlined />}
-              suffix={
-                <Button
-                  type='link'
-                  size='small'
-                  icon={<CopyOutlined />}
-                  onClick={copyInvitationCode}
-                >
-                  复制
-                </Button>
-              }
-            />
-          </Col>
-          <Col span={6}>
-            <Statistic
               title='邀请用户数'
               value={userInvitationInfo.totalInvitees}
               prefix={<UserAddOutlined />}
@@ -147,6 +130,23 @@ export default function InvitationsPage() {
               prefix={<ShopOutlined />}
               suffix='个'
               valueStyle={{ color: '#52c41a' }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title='我的邀请码'
+              value={userInvitationInfo.invitationCode}
+              prefix={<LinkOutlined />}
+              suffix={
+                <Button
+                  type='link'
+                  size='small'
+                  icon={<CopyOutlined />}
+                  onClick={copyInvitationCode}
+                >
+                  复制
+                </Button>
+              }
             />
           </Col>
           <Col span={6}>

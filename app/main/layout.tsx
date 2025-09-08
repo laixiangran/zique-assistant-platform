@@ -13,6 +13,7 @@ import {
   Tag,
   Modal,
   Descriptions,
+  Spin,
 } from 'antd';
 import {
   ShopOutlined,
@@ -189,8 +190,17 @@ export default function mainLayout({
 
   if (loading) {
     return (
-      <div>
-        <div>加载中...</div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+        }}
+      >
+        <Spin size='large' />
+        <div style={{ marginTop: 16, fontSize: 16 }}>页面加载中...</div>
       </div>
     );
   }

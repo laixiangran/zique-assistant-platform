@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Invitation, User, UserOperationLog } from '@/models';
+import { Invitation, User } from '@/models';
 import {
   authenticateMainAccount,
   successResponse,
   errorResponse,
-  getClientIP,
   formatObjectDates,
 } from '@/lib/utils';
 
@@ -51,11 +50,32 @@ export async function GET(request: NextRequest) {
       order: [['createdTime', 'DESC']],
     });
 
+    // 用户名加密函数
+    const maskUsername = (username: string) => {
+      if (!username || username.length <= 2) {
+        return username;
+      }
+
+      const firstChar = username.charAt(0);
+      const lastChar = username.charAt(username.length - 1);
+      const middleLength = username.length - 2;
+      const maskedMiddle = '*'.repeat(middleLength);
+
+      return firstChar + maskedMiddle + lastChar;
+    };
+
     return NextResponse.json(
       successResponse(
         {
           invitations: rows.map((invitation) => {
-            return formatObjectDates(invitation.toJSON());
+            const invitationData: any = formatObjectDates(invitation.toJSON());
+            // 对用户名进行加密处理
+            if (invitationData.invitee && invitationData.invitee.username) {
+              invitationData.invitee.username = maskUsername(
+                invitationData.invitee.username
+              );
+            }
+            return invitationData;
           }),
           pagination: {
             total: count,
