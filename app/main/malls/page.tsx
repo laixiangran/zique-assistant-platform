@@ -63,15 +63,7 @@ export default function MallsPage() {
     try {
       const response = await mallsAPI.getMallQuota();
       const data = response.data;
-
-      if (data.success) {
-        setQuotaInfo(data.data);
-      } else {
-        message.error(data.message || '获取配额信息失败');
-      }
-    } catch (error) {
-      console.error('获取配额信息失败:', error);
-      message.error('获取配额信息失败');
+      setQuotaInfo(data);
     } finally {
       setQuotaLoading(false);
     }
@@ -87,20 +79,12 @@ export default function MallsPage() {
         ...params,
       });
       const data = response.data;
-
-      if (data.success) {
-        setMalls(data.data.malls);
-        setPagination({
-          current: pageIndex,
-          pageSize,
-          total: data.data.pagination.total,
-        });
-      } else {
-        message.error(data.message || '获取店铺列表失败');
-      }
-    } catch (error) {
-      console.error('获取店铺列表失败:', error);
-      message.error('获取店铺列表失败');
+      setMalls(data.malls);
+      setPagination({
+        current: pageIndex,
+        pageSize,
+        total: data.pagination.total,
+      });
     } finally {
       setLoading(false);
     }
@@ -108,42 +92,20 @@ export default function MallsPage() {
 
   // 删除店铺
   const handleDeleteMall = async (mallId: number) => {
-    try {
-      const response = await mallsAPI.deleteMall(mallId);
-      const data = response.data;
-
-      if (data.success) {
-        message.success('店铺删除成功');
-        fetchMalls(pagination.current, pagination.pageSize, searchParams);
-        fetchQuotaInfo(); // 刷新配额信息
-      } else {
-        message.error(data.message || '店铺删除失败');
-      }
-    } catch (error) {
-      console.error('店铺删除失败:', error);
-      message.error('店铺删除失败');
-    }
+    await mallsAPI.deleteMall(mallId);
+    message.success('店铺删除成功');
+    fetchMalls(pagination.current, pagination.pageSize, searchParams);
+    fetchQuotaInfo(); // 刷新配额信息
   };
 
   // 绑定店铺
   const handleAddMall = async (values: any) => {
-    try {
-      const response = await mallsAPI.createMall(values);
-      const data = response.data;
-
-      if (data.success) {
-        message.success('店铺添加成功');
-        setModalVisible(false);
-        form.resetFields();
-        fetchMalls(pagination.current, pagination.pageSize, searchParams);
-        fetchQuotaInfo(); // 刷新配额信息
-      } else {
-        message.error(data.message || '店铺添加失败');
-      }
-    } catch (error: any) {
-      console.error('店铺添加失败:', error);
-      message.error(error.response.data.message || '店铺添加失败');
-    }
+    await mallsAPI.createMall(values);
+    message.success('店铺绑定成功');
+    setModalVisible(false);
+    form.resetFields();
+    fetchMalls(pagination.current, pagination.pageSize, searchParams);
+    fetchQuotaInfo(); // 刷新配额信息
   };
 
   // 处理模态框确定

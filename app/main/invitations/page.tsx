@@ -43,19 +43,12 @@ export default function InvitationsPage() {
       setInfoLoading(true);
       const response = await invitationsAPI.getInvitationsInfo();
       const data = response.data;
-      if (data.success) {
-        const baseUrl = window.location.origin;
-        const invitationLink = `${baseUrl}/register?invitationCode=${data.data.invitationCode}`;
-        setUserInvitationInfo({
-          ...data.data,
-          invitationLink,
-        });
-      } else {
-        message.error(data.message || '获取邀请信息失败');
-      }
-    } catch (error) {
-      console.error('获取邀请信息失败:', error);
-      message.error('获取邀请信息失败');
+      const baseUrl = window.location.origin;
+      const invitationLink = `${baseUrl}/register?invitationCode=${data.invitationCode}`;
+      setUserInvitationInfo({
+        ...data,
+        invitationLink,
+      });
     } finally {
       setInfoLoading(false);
     }
@@ -71,18 +64,11 @@ export default function InvitationsPage() {
       });
 
       const data = response.data;
-      if (data.success) {
-        setInvitations(data.data.invitations);
-        setInvitationPagination((prev) => ({
-          ...prev,
-          total: data.data.pagination.total,
-        }));
-      } else {
-        message.error(data.message || '获取邀请记录失败');
-      }
-    } catch (error) {
-      console.error('获取邀请记录失败:', error);
-      message.error('获取邀请记录失败');
+      setInvitations(data.invitations);
+      setInvitationPagination((prev) => ({
+        ...prev,
+        total: data.pagination.total,
+      }));
     } finally {
       setLoading(false);
     }

@@ -243,12 +243,12 @@ export async function POST(request: NextRequest) {
       });
 
       // 为子账户创建相应的店铺绑定
-        const subAccountBindings = parentMallBindings.map((binding) => ({
-           userId: Number(subAccount.id),
-           accountType: 'sub' as const,
-           mallId: binding.mallId,
-           mallName: binding.mallName,
-         }));
+      const subAccountBindings = parentMallBindings.map((binding) => ({
+        userId: Number(subAccount.id),
+        accountType: 'sub' as const,
+        mallId: binding.mallId,
+        mallName: binding.mallName,
+      }));
 
       if (subAccountBindings.length > 0) {
         await UserMallBinding.bulkCreate(subAccountBindings);

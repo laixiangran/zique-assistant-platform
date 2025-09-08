@@ -1,3 +1,4 @@
+import { message } from 'antd';
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
 
 // 创建axios实例
@@ -23,12 +24,46 @@ apiClient.interceptors.request.use(
 // 响应拦截器
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    const { data } = response;
+
+    // 检查业务逻辑是否成功
+    if (data && typeof data === 'object' && 'success' in data) {
+      if (!data.success) {
+        // 业务逻辑失败，抛出错误
+        const errorMessage = data.message || '请求失败，请稍后重试';
+        console.error(data);
+        message.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      // 业务逻辑成功，返回data.data，减少一层嵌套
+      return {
+        ...response,
+        data: data.data || data,
+      };
+    }
+
+    // 如果响应格式不符合预期，直接返回原始data
     return response;
   },
   (error) => {
     // 统一错误处理
     console.error('API Error:', error);
-    return Promise.reject(error);
+
+    // 处理HTTP错误
+    if (error.response) {
+      const { data } = error.response;
+      if (data && data.message) {
+        console.error(data);
+        message.error(data.message || '请求失败，请稍后重试');
+        throw new Error(data.message);
+      }
+    }
+
+    // 处理网络错误或其他错误
+    const errorMessage = error.message || '请求失败，请稍后重试';
+    console.error(error);
+    message.error(errorMessage);
+    throw new Error(errorMessage);
   }
 );
 

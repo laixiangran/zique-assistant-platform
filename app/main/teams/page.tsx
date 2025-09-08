@@ -14,13 +14,7 @@ import {
   message,
   Popconfirm,
 } from 'antd';
-import {
-  EditOutlined,
-  DeleteOutlined,
-  UserOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { subAccountsAPI, mallsAPI } from '../../services';
 
 import { useRouter } from 'next/navigation';
@@ -62,34 +56,22 @@ export default function SubAccountsPage() {
       const response = await subAccountsAPI.getSubAccounts(params);
       const data = response.data;
 
-      if (data.success) {
-        setSubAccounts(data.data.subAccounts);
-        setPagination({
-          current: page,
-          pageSize,
-          total: data.data.pagination.total,
-        });
+      setSubAccounts(data.subAccounts);
+      setPagination({
+        current: page,
+        pageSize,
+        total: data.pagination.total,
+      });
 
-        // 计算统计数据
-        const accounts = data.data.subAccounts;
-        const stats = {
-          total: accounts.length,
-          active: accounts.filter((acc: any) => acc.status === 'active').length,
-          inactive: accounts.filter((acc: any) => acc.status === 'inactive')
-            .length,
-        };
-        setStats(stats);
-      } else {
-        message.error(data.message || '获取子账户列表失败');
-      }
-    } catch (error: any) {
-      console.error('获取子账户列表失败:', error);
-      if (error.response?.status === 401) {
-        message.error('登录已过期，请重新登录');
-        router.push('/login');
-      } else {
-        message.error('获取子账户列表失败');
-      }
+      // 计算统计数据
+      const accounts = data.subAccounts;
+      const stats = {
+        total: accounts.length,
+        active: accounts.filter((acc: any) => acc.status === 'active').length,
+        inactive: accounts.filter((acc: any) => acc.status === 'inactive')
+          .length,
+      };
+      setStats(stats);
     } finally {
       setLoading(false);
     }
@@ -97,60 +79,33 @@ export default function SubAccountsPage() {
 
   // 获取店铺列表
   const fetchMalls = async () => {
-    try {
-      const response = await mallsAPI.getMalls({ pageSize: 1000 });
-      const data = response.data;
-      if (data.success) {
-        setMalls(data.data.malls);
-      }
-    } catch (error) {
-      console.error('获取店铺列表失败:', error);
-    }
+    const response = await mallsAPI.getMalls({ pageSize: 1000 });
+    const data = response.data;
+    setMalls(data.malls);
   };
 
   // 提交表单
   const handleSubmit = async (values: any) => {
-    try {
-      const { confirmPassword, ...submitData } = values;
-      const requestData = {
-        ...submitData,
-        responsibleMalls: (values.responsibleMalls || []).map((key: string) =>
-          parseInt(key)
-        ),
-      };
-
-      let response;
-      if (editingAccount) {
-        response = await subAccountsAPI.updateSubAccount(
-          editingAccount.id.toString(),
-          requestData
-        );
-      } else {
-        response = await subAccountsAPI.createSubAccount(requestData);
-      }
-
-      const data = response.data;
-      if (data.success) {
-        message.success(editingAccount ? '子账户更新成功' : '子账户创建成功');
-        setModalVisible(false);
-        setEditingAccount(null);
-        form.resetFields();
-        fetchSubAccounts(
-          pagination.current,
-          pagination.pageSize,
-          searchUsername
-        );
-      } else {
-        message.error(data.message || '操作失败');
-      }
-    } catch (error: any) {
-      console.error('操作失败:', error);
-      if (error.response?.data?.message) {
-        message.error(error.response.data.message);
-      } else {
-        message.error('网络错误，请稍后重试');
-      }
+    const { confirmPassword, ...submitData } = values;
+    const requestData = {
+      ...submitData,
+      responsibleMalls: (values.responsibleMalls || []).map((key: string) =>
+        parseInt(key)
+      ),
+    };
+    if (editingAccount) {
+      await subAccountsAPI.updateSubAccount(
+        editingAccount.id.toString(),
+        requestData
+      );
+    } else {
+      await subAccountsAPI.createSubAccount(requestData);
     }
+    message.success(editingAccount ? '子账户更新成功' : '子账户创建成功');
+    setModalVisible(false);
+    setEditingAccount(null);
+    form.resetFields();
+    fetchSubAccounts(pagination.current, pagination.pageSize, searchUsername);
   };
 
   // 编辑子账户
@@ -173,27 +128,9 @@ export default function SubAccountsPage() {
 
   // 删除子账户
   const handleDelete = async (id: number) => {
-    try {
-      const response = await subAccountsAPI.deleteSubAccount(id.toString());
-      const data = response.data;
-      if (data.success) {
-        message.success('子账户删除成功');
-        fetchSubAccounts(
-          pagination.current,
-          pagination.pageSize,
-          searchUsername
-        );
-      } else {
-        message.error(data.message || '删除失败');
-      }
-    } catch (error: any) {
-      console.error('删除失败:', error);
-      if (error.response?.data?.message) {
-        message.error(error.response.data.message);
-      } else {
-        message.error('网络错误，请稍后重试');
-      }
-    }
+    await subAccountsAPI.deleteSubAccount(id.toString());
+    message.success('子账户删除成功');
+    fetchSubAccounts(pagination.current, pagination.pageSize, searchUsername);
   };
 
   // 表格列定义

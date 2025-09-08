@@ -96,9 +96,8 @@ export default function mainLayout({
         page: 1,
         pageSize: 10,
       });
-      if (response.data.success) {
-        setUserPackage(response.data.data?.userPackages[0] || {});
-      }
+      const data = response.data;
+      setUserPackage(data?.userPackages[0] || {});
     } catch (error) {
       console.error('获取用户套餐信息失败:', error);
     }
