@@ -338,6 +338,7 @@ export async function DELETE(
     await UserMallBinding.destroy({
       where: {
         userId: Number(subAccountId),
+        accountType: 'sub',
       },
     });
 
