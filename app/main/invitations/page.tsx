@@ -183,7 +183,7 @@ export default function InvitationsPage() {
         </Row>
         <Alert
           message='邀请奖励说明'
-          description='邀请好友成功注册后，您将获得免费店铺绑定配额奖励。邀请越多，奖励越丰富！'
+          description='邀请好友成功注册并绑定店铺，您将获得免费店铺绑定配额奖励。好友绑定多少个店铺就奖励多少个免费店铺绑定配额！'
           type='info'
           showIcon
           style={{ marginTop: 16 }}

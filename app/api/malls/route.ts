@@ -6,6 +6,7 @@ import {
   UserPackage,
   MembershipPackage,
   InvitationReward,
+  Invitation,
 } from '@/models';
 import {
   authenticateRequest,
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     // 获取用户已领取的邀请奖励（免费店铺类型）
     const invitationRewards = await InvitationReward.findAll({
       where: {
-        userId,
+        inviterId: userId,
         rewardType: 'free_malls',
         status: 'granted',
       },
@@ -178,6 +179,36 @@ export async function POST(request: NextRequest) {
       mallName: mallName,
       mallId: mallId,
     });
+
+    // 检查用户是否有邀请关系，并处理邀请奖励
+    const invitation = await Invitation.findOne({
+      where: {
+        inviteeId: userId,
+      },
+    });
+
+    if (invitation) {
+      // 检查invitation_rewards表中是否已存在该mall_id的记录
+      const existingReward = await InvitationReward.findOne({
+        where: {
+          mallId: mallId,
+        },
+      });
+
+      // 如果不存在该mall_id的记录，则为邀请者创建奖励记录
+      if (!existingReward) {
+        await InvitationReward.create({
+          inviterId: invitation.inviterId,
+          inviteeId: userId,
+          mallId: mallId,
+          mallName: mallName,
+          rewardType: 'free_malls',
+          rewardCount: 1,
+          usedCount: 0,
+          status: 'granted',
+        });
+      }
+    }
 
     // 记录操作日志
     await UserOperationLog.create({

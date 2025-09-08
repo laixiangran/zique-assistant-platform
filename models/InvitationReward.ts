@@ -5,8 +5,8 @@ import Invitation from './Invitation';
 
 interface InvitationRewardAttributes {
   id: number;
-  invitationId: number;
-  userId: number;
+  inviterId: number; // 邀请人
+  inviteeId: number; // 被邀请人
   mallId?: string;
   mallName?: string;
   rewardType: 'free_malls' | 'discount' | 'cash' | 'points';
@@ -29,10 +29,9 @@ class InvitationReward
 {
   public id!: number;
   public inviterId!: number;
-  public userId!: number;
+  public inviteeId!: number;
   public mallId?: string;
   public mallName?: string;
-  public invitationId!: number;
   public rewardType!: 'free_malls' | 'discount' | 'cash' | 'points';
   public rewardCount!: number;
   public usedCount!: number;
@@ -48,25 +47,25 @@ InvitationReward.init(
       autoIncrement: true,
       primaryKey: true,
     },
-    invitationId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: Invitation,
-        key: 'id',
-      },
-      field: 'invitation_id',
-      comment: '邀请记录ID',
-    },
-    userId: {
+    inviterId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: User,
         key: 'id',
       },
-      field: 'user_id',
-      comment: '获奖用户ID',
+      field: 'inviter_id',
+      comment: '邀请者ID',
+    },
+    inviteeId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: 'id',
+      },
+      field: 'invitee_id',
+      comment: '被邀请者ID',
     },
     mallId: {
       type: DataTypes.STRING,
@@ -123,25 +122,25 @@ InvitationReward.init(
   }
 );
 
-// 定义关联关系
+// 关联定义
 InvitationReward.belongsTo(User, {
-  foreignKey: 'userId',
-  as: 'user',
+  foreignKey: 'inviterId',
+  as: 'inviter',
 });
 
-InvitationReward.belongsTo(Invitation, {
-  foreignKey: 'invitationId',
-  as: 'invitation',
+InvitationReward.belongsTo(User, {
+  foreignKey: 'inviteeId',
+  as: 'invitee',
 });
 
 User.hasMany(InvitationReward, {
-  foreignKey: 'userId',
-  as: 'user',
+  foreignKey: 'inviterId',
+  as: 'inviterRewards',
 });
 
-Invitation.hasMany(InvitationReward, {
-  foreignKey: 'invitationId',
-  as: 'rewards',
+User.hasMany(InvitationReward, {
+  foreignKey: 'inviteeId',
+  as: 'inviteeRewards',
 });
 
 export default InvitationReward;

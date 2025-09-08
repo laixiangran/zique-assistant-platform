@@ -140,9 +140,9 @@ export default function MallsPage() {
       } else {
         message.error(data.message || '店铺添加失败');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('店铺添加失败:', error);
-      message.error('店铺添加失败');
+      message.error(error.response.data.message || '店铺添加失败');
     }
   };
 

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const rewardMallCount =
       (await InvitationReward.sum('rewardCount', {
         where: {
-          userId,
+          inviterId: userId,
           rewardType: 'free_malls',
           status: 'granted',
         },

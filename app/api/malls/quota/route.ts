@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const invitationRewards = await InvitationReward.findAll({
       where: {
         status: 'granted',
-        userId: userId,
+        inviterId: userId,
         rewardType: 'free_malls',
       },
     });
