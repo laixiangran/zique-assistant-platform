@@ -18,7 +18,6 @@ import {
   ShopOutlined,
   UserOutlined,
   TeamOutlined,
-  SettingOutlined,
   LogoutOutlined,
   ShareAltOutlined,
   MenuUnfoldOutlined,
@@ -71,9 +70,12 @@ export default function mainLayout({
   const checkAuth = async () => {
     try {
       const response = await authAPI.getCurrentUser();
-      setUserInfo(response.data);
-      // 获取用户套餐信息
-      fetchUserPackages();
+      const userData = response.data;
+      setUserInfo(userData);
+      // 只有主账户才获取用户套餐信息
+      if (userData?.accountType === 'main') {
+        fetchUserPackages();
+      }
     } catch (error) {
       console.error('认证检查失败:', error);
       // 认证失败时清理所有存储的认证信息
@@ -135,19 +137,19 @@ export default function mainLayout({
   };
 
   const userMenuItems: MenuProps['items'] = [
-    {
-      key: 'profile',
-      icon: <UserOutlined />,
-      label: '个人资料',
-    },
-    {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: '设置',
-    },
-    {
-      type: 'divider',
-    },
+    // {
+    //   key: 'profile',
+    //   icon: <UserOutlined />,
+    //   label: '个人资料',
+    // },
+    // {
+    //   key: 'settings',
+    //   icon: <SettingOutlined />,
+    //   label: '设置',
+    // },
+    // {
+    //   type: 'divider',
+    // },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -156,27 +158,33 @@ export default function mainLayout({
     },
   ];
 
+  // 根据用户类型生成菜单项
   const sideMenuItems: MenuProps['items'] = [
     {
       key: 'home',
       icon: <DashboardOutlined />,
       label: '首页',
     },
-    {
-      key: 'malls',
-      icon: <ShopOutlined />,
-      label: '店铺管理',
-    },
-    {
-      key: 'teams',
-      icon: <TeamOutlined />,
-      label: '团队管理',
-    },
-    {
-      key: 'invitations',
-      icon: <ShareAltOutlined />,
-      label: '邀请奖励',
-    },
+    // 只有主账户才显示团队管理和邀请奖励
+    ...(userInfo?.accountType === 'main'
+      ? [
+          {
+            key: 'malls',
+            icon: <ShopOutlined />,
+            label: '店铺管理',
+          },
+          {
+            key: 'teams',
+            icon: <TeamOutlined />,
+            label: '团队管理',
+          },
+          {
+            key: 'invitations',
+            icon: <ShareAltOutlined />,
+            label: '邀请奖励',
+          },
+        ]
+      : []),
   ];
 
   if (loading) {
@@ -233,14 +241,17 @@ export default function mainLayout({
                 </Tag>
               )}
             </span>
-            <Tag
-              icon={<CrownOutlined />}
-              color='gold'
-              style={{ cursor: 'pointer' }}
-              onClick={() => showPackageDetails()}
-            >
-              {userPackage.package?.packageName || '套餐名称'}
-            </Tag>
+            {/* 只有主账户才显示套餐信息 */}
+            {userInfo?.accountType === 'main' && (
+              <Tag
+                icon={<CrownOutlined />}
+                color='gold'
+                style={{ cursor: 'pointer' }}
+                onClick={() => showPackageDetails()}
+              >
+                {userPackage.package?.packageName || '套餐名称'}
+              </Tag>
+            )}
             <Dropdown menu={{ items: userMenuItems }} placement='bottomRight'>
               <Avatar
                 icon={<UserOutlined />}

@@ -117,14 +117,7 @@ export default function HomePage() {
       </Row>
 
       {/* 店铺列表 */}
-      <Card
-        title='我的店铺'
-        extra={
-          <Button type='primary' icon={<PlusOutlined />}>
-            绑定店铺
-          </Button>
-        }
-      >
+      <Card title='我的店铺'>
         <Table
           columns={shopColumns}
           dataSource={shopData}
