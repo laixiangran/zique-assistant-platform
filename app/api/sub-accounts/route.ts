@@ -212,6 +212,30 @@ export async function POST(request: NextRequest) {
       status,
     } as any);
 
+    // 如果指定了负责店铺，创建店铺绑定关系
+    if (responsibleMalls && responsibleMalls.length > 0) {
+      // 获取主账户的店铺绑定信息
+      const parentMallBindings = await UserMallBinding.findAll({
+        where: {
+          userId: mainAccountUserId,
+          accountType: 'main',
+          mallId: responsibleMalls,
+        },
+      });
+
+      // 为子账户创建相应的店铺绑定
+      const subAccountBindings = parentMallBindings.map((binding) => ({
+        userId: Number(subAccount.id),
+        accountType: 'sub' as const,
+        mallId: binding.mallId,
+        mallName: binding.mallName,
+      }));
+
+      if (subAccountBindings.length > 0) {
+        await UserMallBinding.bulkCreate(subAccountBindings);
+      }
+    }
+
     // 记录操作日志
     await UserOperationLog.create({
       userId: mainAccountUserId,
@@ -228,15 +252,25 @@ export async function POST(request: NextRequest) {
       status: 'success',
     } as any);
 
+    // 查询创建后的子账户店铺绑定
+    const mallBindings = await UserMallBinding.findAll({
+      where: { userId: subAccount.id, accountType: 'sub' },
+      attributes: ['mallId', 'mallName'],
+    });
+
     // 返回结果（包含生成的密码供用户查看）
     const result = formatObjectDates(subAccount.toJSON());
     delete (result as any).password; // 删除加密后的密码
 
+    // 添加明文密码和店铺绑定信息到返回结果中
+    (result as any).generatedPassword = password;
+    (result as any).responsibleMalls = mallBindings.map((binding) => ({
+      mallId: binding.mallId,
+      mallName: binding.mallName,
+    }));
+
     return NextResponse.json(
-      successResponse(
-        formatObjectDates(result),
-        '子账户创建成功，请记录生成的密码'
-      )
+      successResponse(formatObjectDates(result), `子账户创建成功！`)
     );
   } catch (error) {
     console.error('创建子账户失败:', error);

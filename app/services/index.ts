@@ -168,8 +168,11 @@ export const subAccountsAPI = {
   // 删除子账户
   deleteSubAccount: (id: string) => request.delete(`/sub-accounts/${id}`),
 
-  // 获取子账户详情
+  // 获取单个子账户
   getSubAccount: (id: string) => request.get(`/sub-accounts/${id}`),
+
+  // 重置子账户密码
+  resetSubAccountPassword: (id: string) => request.post(`/sub-accounts/${id}/reset-password`),
 };
 
 // 套餐相关API

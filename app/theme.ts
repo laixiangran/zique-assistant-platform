@@ -34,6 +34,11 @@ const theme: ThemeConfig = {
     Table: {
       headerBg: '#fafafa',
     },
+    Modal: {
+      colorPrimary: '#8b5cf6',
+      colorIcon: '#8b5cf6',
+      colorIconHover: '#7c3aed',
+    },
   },
 };
 

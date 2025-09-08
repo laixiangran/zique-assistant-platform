@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       tokenPayload = {
         userId: user.id,
         username: user.username,
-        type: 'user',
+        type: 'main',
       };
     } else {
       // 如果没找到主账户，则尝试查找子账户
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       tokenPayload = {
         userId: user.id,
         username: user.username,
-        type: 'sub_account',
+        type: 'sub',
       };
     }
 

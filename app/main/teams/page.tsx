@@ -15,7 +15,13 @@ import {
   Popconfirm,
   Alert,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  CopyOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import { subAccountsAPI, mallsAPI } from '../../services';
 
 import { useRouter } from 'next/navigation';
@@ -101,17 +107,87 @@ export default function SubAccountsPage() {
       message.success('子账户更新成功');
     } else {
       const response = await subAccountsAPI.createSubAccount(requestData);
-      const generatedPassword = response.data.password;
+      const username = response.data.username;
+      const generatedPassword = response.data.generatedPassword;
+      const copyToClipboard = (text: string, type: string) => {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            message.success(`${type}已复制到剪贴板`);
+          })
+          .catch(() => {
+            message.error('复制失败，请手动复制');
+          });
+      };
+
+      const copyAllInfo = () => {
+        const allInfo = `用户名：${username}\n密码：${generatedPassword}`;
+        navigator.clipboard
+          .writeText(allInfo)
+          .then(() => {
+            message.success('登录信息已复制到剪贴板');
+          })
+          .catch(() => {
+            message.error('复制失败，请手动复制');
+          });
+      };
+
       Modal.success({
         title: '子账户创建成功',
         content: (
           <div>
-            <p>用户名：{values.username}</p>
-            <p>系统生成的密码：<strong style={{color: '#ff4d4f'}}>{generatedPassword}</strong></p>
-            <p style={{color: '#faad14'}}>请及时记录密码，关闭后将无法再次查看！</p>
+            <p
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '4px',
+              }}
+            >
+              用户名：{username}
+            </p>
+            <p
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '4px',
+              }}
+            >
+              登录密码：
+              <strong style={{ color: '#ff4d4f' }}>{generatedPassword}</strong>
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <Button
+                style={{
+                  backgroundColor: '#8b5cf6',
+                  borderColor: '#8b5cf6',
+                  color: '#ffffff',
+                }}
+                type='primary'
+                icon={<CopyOutlined />}
+                onClick={copyAllInfo}
+                size='small'
+              >
+                一键复制登录信息
+              </Button>
+            </div>
           </div>
         ),
-        width: 400,
+        width: 450,
+        okText: '知道了',
+        okButtonProps: {
+          style: {
+            backgroundColor: '#8b5cf6',
+            borderColor: '#8b5cf6',
+            color: '#ffffff',
+          },
+        },
+        cancelButtonProps: { style: { display: 'none' } },
+        centered: true,
       });
     }
     setModalVisible(false);
@@ -143,6 +219,104 @@ export default function SubAccountsPage() {
     await subAccountsAPI.deleteSubAccount(id.toString());
     message.success('子账户删除成功');
     fetchSubAccounts(pagination.current, pagination.pageSize, searchUsername);
+  };
+
+  // 重置子账户密码
+  const handleResetPassword = async (record: any) => {
+    try {
+      const response = await subAccountsAPI.resetSubAccountPassword(
+        record.id.toString()
+      );
+      const { username, generatedPassword } = response.data;
+
+      // 显示重置成功弹窗，复用创建成功的弹窗样式
+      showResetSuccessModal(username, generatedPassword);
+
+      message.success('密码重置成功');
+    } catch (error) {
+      console.error('重置密码失败:', error);
+    }
+  };
+
+  // 显示重置密码成功弹窗
+  const showResetSuccessModal = (username: string, newPassword: string) => {
+    // 复制单个信息到剪贴板
+    const copyToClipboard = (text: string, type: string) => {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          message.success(`${type}已复制到剪贴板`);
+        })
+        .catch(() => {
+          message.error('复制失败，请手动复制');
+        });
+    };
+
+    // 复制所有登录信息
+    const copyAllInfo = () => {
+      const loginInfo = `用户名：${username}\n新密码：${newPassword}`;
+      navigator.clipboard
+        .writeText(loginInfo)
+        .then(() => {
+          message.success('登录信息已复制到剪贴板');
+        })
+        .catch(() => {
+          message.error('复制失败，请手动复制');
+        });
+    };
+
+    Modal.success({
+      title: '密码重置成功',
+      content: (
+        <div>
+          <p
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '4px',
+            }}
+          >
+            用户名：{username}
+          </p>
+          <p
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '4px',
+            }}
+          >
+            新密码：
+            <strong style={{ color: '#ff4d4f' }}>{newPassword}</strong>
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+              style={{
+                backgroundColor: '#8b5cf6',
+                borderColor: '#8b5cf6',
+                color: '#ffffff',
+              }}
+              type='primary'
+              icon={<CopyOutlined />}
+              onClick={copyAllInfo}
+              size='small'
+            >
+              一键复制登录信息
+            </Button>
+          </div>
+        </div>
+      ),
+      width: 450,
+      okText: '知道了',
+      okButtonProps: {
+        style: {
+          backgroundColor: '#8b5cf6',
+          borderColor: '#8b5cf6',
+          color: '#ffffff',
+        },
+      },
+      cancelButtonProps: { style: { display: 'none' } },
+      centered: true,
+    });
   };
 
   // 表格列定义
@@ -184,7 +358,7 @@ export default function SubAccountsPage() {
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 180,
       render: (_: any, record: any) => (
         <Space size='small'>
           <Button
@@ -195,6 +369,21 @@ export default function SubAccountsPage() {
           >
             编辑
           </Button>
+          <Popconfirm
+            title='确定要重置这个子账户的密码吗？'
+            onConfirm={() => handleResetPassword(record)}
+            okText='确定'
+            cancelText='取消'
+          >
+            <Button
+              type='link'
+              size='small'
+              icon={<ReloadOutlined />}
+              style={{ color: '#8b5cf6' }}
+            >
+              重置密码
+            </Button>
+          </Popconfirm>
           <Popconfirm
             title='确定要删除这个子账户吗？'
             onConfirm={() => handleDelete(record.id)}
@@ -317,9 +506,9 @@ export default function SubAccountsPage() {
           {!editingAccount && (
             <Form.Item>
               <Alert
-                message="密码将由系统自动生成"
-                description="创建成功后将显示8位随机密码，请及时记录"
-                type="info"
+                message='密码将由系统自动生成'
+                description='创建成功后将显示8位随机密码，请及时记录'
+                type='info'
                 showIcon
                 style={{ marginBottom: 16 }}
               />
