@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
     // 统一身份验证
     const authResult = await authenticateRequest(request);
     if (!authResult.success) {
-      return NextResponse.json(errorResponse(authResult.error!), { status: 401 });
+      return NextResponse.json(errorResponse(authResult.error!), {
+        status: 401,
+      });
     }
 
     const decoded = authResult.user!;

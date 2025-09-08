@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     let userInfo: any = null;
 
-    if (decoded.type === 'user') {
+    if (decoded.type === 'main') {
       // 主账户
       const user = await User.findByPk(decoded.userId, {
         attributes: {
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         updatedTime: user.updatedTime,
         accountType: 'main',
       };
-    } else if (decoded.type === 'sub_account') {
+    } else if (decoded.type === 'sub') {
       // 子账户
       const subAccount = await SubAccount.findByPk(decoded.userId, {
         attributes: {

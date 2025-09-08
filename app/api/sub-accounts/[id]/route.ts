@@ -7,6 +7,7 @@ import {
   hashPassword,
   getClientIP,
   formatObjectDates,
+  authenticateMainAccount,
 } from '@/lib/utils';
 
 // 获取子账户详情
@@ -15,29 +16,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证（需要主账户权限）
+    const authResult = authenticateMainAccount(request);
+    if (!authResult.success) {
+      return authResult.response!;
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以查看子账户详情
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以查看子账户详情'), {
-        status: 403,
-      });
-    }
-
-    const mainAccountUserId = decoded.userId;
+    const mainAccountUserId = authResult.user?.userId;
     const subAccountId = params.id;
 
     // 查询子账户
@@ -84,29 +69,13 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证（需要主账户权限）
+    const authResult = authenticateMainAccount(request);
+    if (!authResult.success) {
+      return authResult.response!;
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以更新子账户
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以更新子账户'), {
-        status: 403,
-      });
-    }
-
-    const mainAccountUserId = decoded.userId;
+    const mainAccountUserId = authResult.user?.userId;
     const subAccountId = params.id;
 
     // 验证子账户ID格式
@@ -235,9 +204,6 @@ export async function PUT(
       updateData.password = await hashPassword(password);
     }
 
-    // 注意：responsibleMalls字段不再直接存储在SubAccount表中
-    // 店铺绑定关系通过UserMallBinding表管理
-
     // 更新状态
     if (status) {
       const validStatuses = ['active', 'inactive'];
@@ -334,29 +300,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证（需要主账户权限）
+    const authResult = authenticateMainAccount(request);
+    if (!authResult.success) {
+      return authResult.response!;
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以删除子账户
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以删除子账户'), {
-        status: 403,
-      });
-    }
-
-    const mainAccountUserId = decoded.userId;
+    const mainAccountUserId = authResult.user?.userId;
     const subAccountId = params.id;
 
     // 验证子账户ID格式

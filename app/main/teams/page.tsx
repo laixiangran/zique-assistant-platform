@@ -13,6 +13,7 @@ import {
   Select,
   message,
   Popconfirm,
+  Alert,
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { subAccountsAPI, mallsAPI } from '../../services';
@@ -86,9 +87,8 @@ export default function SubAccountsPage() {
 
   // 提交表单
   const handleSubmit = async (values: any) => {
-    const { confirmPassword, ...submitData } = values;
     const requestData = {
-      ...submitData,
+      ...values,
       responsibleMalls: (values.responsibleMalls || []).map((key: string) =>
         parseInt(key)
       ),
@@ -98,10 +98,22 @@ export default function SubAccountsPage() {
         editingAccount.id.toString(),
         requestData
       );
+      message.success('子账户更新成功');
     } else {
-      await subAccountsAPI.createSubAccount(requestData);
+      const response = await subAccountsAPI.createSubAccount(requestData);
+      const generatedPassword = response.data.password;
+      Modal.success({
+        title: '子账户创建成功',
+        content: (
+          <div>
+            <p>用户名：{values.username}</p>
+            <p>系统生成的密码：<strong style={{color: '#ff4d4f'}}>{generatedPassword}</strong></p>
+            <p style={{color: '#faad14'}}>请及时记录密码，关闭后将无法再次查看！</p>
+          </div>
+        ),
+        width: 400,
+      });
     }
-    message.success(editingAccount ? '子账户更新成功' : '子账户创建成功');
     setModalVisible(false);
     setEditingAccount(null);
     form.resetFields();
@@ -302,48 +314,17 @@ export default function SubAccountsPage() {
             <Input placeholder='请输入用户名' />
           </Form.Item>
 
-          <Form.Item
-            label='密码'
-            name='password'
-            rules={[
-              { required: !editingAccount, message: '请输入密码' },
-              { min: 6, max: 20, message: '密码长度应在6-20个字符之间' },
-            ]}
-          >
-            <Input.Password
-              placeholder={editingAccount ? '留空则不修改密码' : '请输入密码'}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label='确认密码'
-            name='confirmPassword'
-            dependencies={['password']}
-            rules={[
-              {
-                required: !editingAccount,
-                message: '请确认密码',
-              },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  const password = getFieldValue('password');
-                  // 编辑模式下，如果密码为空，确认密码也可以为空
-                  if (editingAccount && !password && !value) {
-                    return Promise.resolve();
-                  }
-                  // 密码和确认密码必须一致
-                  if (!value || password === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('两次输入的密码不一致'));
-                },
-              }),
-            ]}
-          >
-            <Input.Password
-              placeholder={editingAccount ? '留空则不修改密码' : '请确认密码'}
-            />
-          </Form.Item>
+          {!editingAccount && (
+            <Form.Item>
+              <Alert
+                message="密码将由系统自动生成"
+                description="创建成功后将显示8位随机密码，请及时记录"
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            </Form.Item>
+          )}
 
           <Form.Item
             label='负责店铺'

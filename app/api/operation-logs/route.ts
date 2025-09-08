@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     // 根据用户类型设置查询条件
-    if (userType === 'user') {
+    if (userType === 'main') {
       // 主账户可以查看自己和子账户的操作日志
       const subUsers = await User.findAll({
         where: { parent_user_id: userId } as any,
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     // 计算统计数据
     const totalLogs = await UserOperationLog.count({
       where:
-        userType === 'user'
+        userType === 'main'
           ? {
               userId: {
                 [Op.in]: [

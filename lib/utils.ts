@@ -16,7 +16,7 @@ export const JWT_SECRET =
 export interface JWTPayload {
   userId: number;
   username: string;
-  type: 'user' | 'sub_account';
+  type: 'main' | 'sub';
   iat?: number;
   exp?: number;
 }
@@ -92,7 +92,7 @@ export function authenticateMainAccount(request: NextRequest): AuthResult {
     return authResult;
   }
 
-  if (authResult.user!.type !== 'user') {
+  if (authResult.user!.type !== 'main') {
     return {
       success: false,
       response: NextResponse.json(errorResponse('只有主账户可以执行此操作'), {
@@ -125,6 +125,17 @@ export async function comparePassword(
 // 生成邀请码
 export function generateInvitationCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// 生成随机密码
+export function generateRandomPassword(): string {
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   for (let i = 0; i < 8; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));

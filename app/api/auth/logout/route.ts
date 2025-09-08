@@ -9,11 +9,6 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
     // 尝试验证token并记录登出日志（即使token无效也允许登出）
     const authResult = await authenticateRequest(request);
     if (authResult.success && authResult.user) {
@@ -23,9 +18,9 @@ export async function POST(request: NextRequest) {
         await UserOperationLog.create({
           userId: decoded.userId,
           operationType:
-            decoded.type === 'user' ? 'logout' : 'sub_account_logout',
+            decoded.type === 'main' ? 'logout' : 'sub_account_logout',
           operationDesc:
-            decoded.type === 'user'
+            decoded.type === 'main'
               ? '用户登出'
               : `子账户登出 (${decoded.username})`,
           ipAddress: getClientIP(request),

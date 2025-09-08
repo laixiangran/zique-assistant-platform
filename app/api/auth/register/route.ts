@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
     const token = generateToken({
       userId: newUser.id,
       username: newUser.username,
-      type: 'user',
+      type: 'main',
     });
 
     // 返回用户信息（不包含密码）

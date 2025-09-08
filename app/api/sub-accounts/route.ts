@@ -8,34 +8,20 @@ import {
   getClientIP,
   formatObjectDates,
   authenticateRequest,
+  generateRandomPassword,
+  authenticateMainAccount,
 } from '@/lib/utils';
 
 // 获取子账户列表
 export async function GET(request: NextRequest) {
   try {
-    // 获取token
-    const token =
-      request.cookies.get('token')?.value ||
-      request.headers.get('authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(errorResponse('未登录'), { status: 401 });
+    // 统一身份验证（需要主账户权限）
+    const authResult = authenticateMainAccount(request);
+    if (!authResult.success) {
+      return authResult.response!;
     }
 
-    // 验证token
-    const decoded = verifyToken(token) as any;
-    if (!decoded) {
-      return NextResponse.json(errorResponse('token无效'), { status: 401 });
-    }
-
-    // 只有主账户可以管理子账户
-    if (decoded.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以管理子账户'), {
-        status: 403,
-      });
-    }
-
-    const mainAccountUserId = decoded.userId;
+    const mainAccountUserId = authResult.user?.userId;
 
     // 获取查询参数
     const { searchParams } = new URL(request.url);
@@ -108,19 +94,10 @@ export async function GET(request: NextRequest) {
 // 创建子账户
 export async function POST(request: NextRequest) {
   try {
-    // 统一身份验证
-    const authResult = await authenticateRequest(request);
+    // 统一身份验证（需要主账户权限）
+    const authResult = authenticateMainAccount(request);
     if (!authResult.success) {
-      return NextResponse.json(errorResponse(authResult.error!), {
-        status: 401,
-      });
-    }
-
-    // 只有主账户可以创建子账户
-    if (authResult.user?.type !== 'user') {
-      return NextResponse.json(errorResponse('只有主账户可以创建子账户'), {
-        status: 403,
-      });
+      return authResult.response!;
     }
 
     const mainAccountUserId = authResult.user?.userId;
@@ -135,12 +112,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const {
-      username,
-      password,
-      responsibleMalls = [],
-      status = 'active',
-    } = body;
+    const { username, responsibleMalls = [], status = 'active' } = body;
 
     // 详细数据验证
     const validationErrors = [];
@@ -151,10 +123,6 @@ export async function POST(request: NextRequest) {
       username.trim().length < 3
     ) {
       validationErrors.push('用户名必须是至少3个字符的字符串');
-    }
-
-    if (!password || typeof password !== 'string' || password.length < 6) {
-      validationErrors.push('密码必须是至少6个字符的字符串');
     }
 
     if (responsibleMalls && !Array.isArray(responsibleMalls)) {
@@ -175,8 +143,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证必填字段
-    if (!username || !password) {
-      return NextResponse.json(errorResponse('请输入用户名和密码'), {
+    if (!username) {
+      return NextResponse.json(errorResponse('请输入用户名'), {
         status: 400,
       });
     }
@@ -195,34 +163,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 验证密码格式
-    if (password.length < 6 || password.length > 20) {
-      return NextResponse.json(errorResponse('密码长度应在6-20个字符之间'), {
-        status: 400,
-      });
-    }
-
     // 验证状态
     const validStatuses = ['active', 'inactive'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json(errorResponse('无效的状态'), { status: 400 });
     }
 
-    // 检查用户名是否已存在（主账户和子账户都要检查）
-    const existingUser = await User.findOne({ where: { username } });
-    if (existingUser) {
-      return NextResponse.json(errorResponse('用户名已存在'), { status: 400 });
-    }
-
+    // 检查用户名是否在当前主账户下已存在
     const existingSubAccount = await SubAccount.findOne({
-      where: { username },
+      where: {
+        username,
+        parentUserId: mainAccountUserId,
+      },
     });
     if (existingSubAccount) {
-      return NextResponse.json(errorResponse('用户名已存在'), { status: 400 });
+      return NextResponse.json(errorResponse('用户名在当前账户下已存在'), {
+        status: 400,
+      });
     }
 
-    // 加密密码
-    const hashedPassword = await hashPassword(password);
+    // 生成唯一的随机密码
+    let password;
+    let hashedPassword;
+    let isPasswordUnique = false;
+
+    while (!isPasswordUnique) {
+      password = generateRandomPassword();
+      hashedPassword = await hashPassword(password);
+
+      // 检查密码是否已存在（确保密码唯一性）
+      const existingPasswordUser = await User.findOne({
+        where: { password: hashedPassword },
+      });
+      const existingPasswordSubAccount = await SubAccount.findOne({
+        where: { password: hashedPassword },
+      });
+
+      if (!existingPasswordUser && !existingPasswordSubAccount) {
+        isPasswordUnique = true;
+      }
+    }
 
     // 创建子账户
     const subAccount = await SubAccount.create({
@@ -231,29 +211,6 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       status,
     } as any);
-
-    // 为子账户创建店铺绑定关系
-    if (responsibleMalls && responsibleMalls.length > 0) {
-      // 获取主账户的店铺绑定信息
-      const parentMallBindings = await UserMallBinding.findAll({
-        where: {
-          userId: mainAccountUserId,
-          mallId: responsibleMalls,
-        },
-      });
-
-      // 为子账户创建相应的店铺绑定
-      const subAccountBindings = parentMallBindings.map((binding) => ({
-        userId: Number(subAccount.id),
-        accountType: 'sub' as const,
-        mallId: binding.mallId,
-        mallName: binding.mallName,
-      }));
-
-      if (subAccountBindings.length > 0) {
-        await UserMallBinding.bulkCreate(subAccountBindings);
-      }
-    }
 
     // 记录操作日志
     await UserOperationLog.create({
@@ -271,22 +228,15 @@ export async function POST(request: NextRequest) {
       status: 'success',
     } as any);
 
-    // 查询创建的子账户的店铺绑定
-    const mallBindings = await UserMallBinding.findAll({
-      where: { userId: subAccount.id, accountType: 'sub' },
-      attributes: ['mallId', 'mallName'],
-    });
-
-    // 返回结果（不包含密码）
-    const result = {
-      ...formatObjectDates(subAccount.toJSON()),
-      responsibleMalls: mallBindings.map((binding) => binding.mallId),
-      permissions: JSON.parse((subAccount as any).permissions || '[]'),
-    };
-    delete (result as any).password;
+    // 返回结果（包含生成的密码供用户查看）
+    const result = formatObjectDates(subAccount.toJSON());
+    delete (result as any).password; // 删除加密后的密码
 
     return NextResponse.json(
-      successResponse(formatObjectDates(result), '子账户创建成功')
+      successResponse(
+        formatObjectDates(result),
+        '子账户创建成功，请记录生成的密码'
+      )
     );
   } catch (error) {
     console.error('创建子账户失败:', error);
