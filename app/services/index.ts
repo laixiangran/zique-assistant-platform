@@ -72,7 +72,8 @@ export const mallsAPI = {
   deleteMall: (id: number) => request.delete(`/malls?id=${id}`),
 
   // 获取店铺配额信息
-  getMallQuota: (signal?: AbortSignal) => request.get('/malls/quota', { signal }),
+  getMallQuota: (signal?: AbortSignal) =>
+    request.get('/malls/quota', { signal }),
 };
 
 // 邀请相关API

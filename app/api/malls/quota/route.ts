@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 计算邀请奖励的店铺数
-    const rewardShopCount = invitationRewards.reduce((total, reward) => {
+    const rewardMallCount = invitationRewards.reduce((total, reward) => {
       return total + Number(reward.rewardCount || 0);
     }, 0);
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const packageMaxBindMall = (userPackage as any)?.package?.maxBindMall || 0;
 
     // 计算总的可绑定店铺数
-    const totalQuota = packageMaxBindMall + rewardShopCount;
+    const totalQuota = packageMaxBindMall + rewardMallCount;
 
     // 获取用户当前已绑定的店铺数
     const currentBindCount = await UserMallBinding.count({
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       currentBindCount, // 当前已绑定数
       remainingQuota, // 剩余可绑定数
       packageQuota: packageMaxBindMall, // 套餐配额
-      rewardQuota: rewardShopCount, // 奖励配额
+      rewardQuota: rewardMallCount, // 奖励配额
       canBind: remainingQuota > 0, // 是否可以绑定
       packageInfo: userPackage
         ? {

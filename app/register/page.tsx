@@ -50,7 +50,7 @@ export default function RegisterPage() {
     }
 
     // 从URL参数中获取邀请码并填入表单
-    const invitationCode = searchParams.get('invitation_code');
+    const invitationCode = searchParams.get('invitationCode');
     if (invitationCode) {
       registerForm.setFieldsValue({ invitationCode });
     }

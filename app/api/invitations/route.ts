@@ -86,10 +86,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 生成邀请链接（使用用户的邀请码）
-    const invitationCode = (user as any).invitation_code;
+    const invitationCode = (user as any).invitationCode;
     const invitationLink = `${
       process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    }/login?invitation_code=${invitationCode}`;
+    }/login?invitationCode=${invitationCode}`;
 
     // 记录操作日志
     await UserOperationLog.create({
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       operation_description: '生成邀请链接',
       target_type: 'invitation',
       target_id: 0,
-      request_data: JSON.stringify({ invitation_code: invitationCode }),
+      request_data: JSON.stringify({ invitationCode: invitationCode }),
       ip_address: getClientIP(request),
       user_agent: request.headers.get('user-agent') || '',
       status: 'success',
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       successResponse(
         {
-          invitation_code: invitationCode,
+          invitationCode: invitationCode,
           invitation_link: invitationLink,
         },
         '邀请链接生成成功'

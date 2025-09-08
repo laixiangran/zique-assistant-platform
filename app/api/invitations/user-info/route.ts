@@ -13,10 +13,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userIdNumber = authResult.user!.userId;
+    const userId = authResult.user!.userId;
 
     // 获取用户信息
-    const user = await User.findByPk(userIdNumber);
+    const user = await User.findByPk(userId);
     if (!user) {
       return NextResponse.json(
         { success: false, message: '用户不存在' },
@@ -24,25 +24,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 生成用户邀请码（如果没有的话）
-    let invitationCode = user.inviteCode;
-    if (!invitationCode) {
-      invitationCode = `INV${userIdNumber}${Date.now().toString().slice(-6)}`;
-      await user.update({ inviteCode: invitationCode });
-    }
-
-    // 统计邀请用户数（从invitations表获取当前用户的邀请记录数）
     const totalInvitees = await Invitation.count({
       where: {
-        inviterId: userIdNumber,
+        inviterId: userId,
       },
     });
 
-    // 统计奖励店铺数量（从invitation_rewards表获取reward_type='free_malls'的reward_count总和）
-    const rewardShopCount =
+    const rewardMallCount =
       (await InvitationReward.sum('rewardCount', {
         where: {
-          userId: userIdNumber,
+          userId,
           rewardType: 'free_malls',
           status: 'granted',
         },
@@ -51,9 +42,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        invitationCode,
+        invitationCode: user.inviteCode,
         totalInvitees,
-        rewardShopCount,
+        rewardMallCount,
       },
     });
   } catch (error) {
