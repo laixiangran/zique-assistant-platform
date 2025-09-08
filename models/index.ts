@@ -8,6 +8,7 @@ import Feature from './Feature';
 import Invitation from './Invitation';
 import InvitationReward from './InvitationReward';
 import UserOperationLog from './UserOperationLog';
+import PasswordResetToken from './PasswordResetToken';
 
 // 设置模型关联
 SubAccount.belongsTo(User, {
@@ -32,6 +33,7 @@ export {
   Invitation,
   InvitationReward,
   UserOperationLog,
+  PasswordResetToken,
 };
 
 // 初始化数据库连接和模型同步
@@ -73,6 +75,7 @@ export default {
   Invitation,
   InvitationReward,
   UserOperationLog,
+  PasswordResetToken,
   initDatabase,
   closeDatabase,
 };
