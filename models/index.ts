@@ -1,5 +1,6 @@
 import sequelize from '../lib/database';
 import User from './User';
+import Admin from './Admin';
 import SubAccount from './SubAccount';
 import UserMallBinding from './UserMallBinding';
 import MembershipPackage from './MembershipPackage';
@@ -26,6 +27,7 @@ User.hasMany(SubAccount, {
 export {
   sequelize,
   User,
+  Admin,
   SubAccount,
   UserMallBinding,
   MembershipPackage,
@@ -69,6 +71,7 @@ export async function closeDatabase() {
 export default {
   sequelize,
   User,
+  Admin,
   SubAccount,
   UserMallBinding,
   MembershipPackage,

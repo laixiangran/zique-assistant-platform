@@ -3,18 +3,20 @@ import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import {
-  authenticateMainAccount,
   successResponse,
   errorResponse,
 } from '@/lib/utils';
+import { getAdminFromRequest } from '@/lib/admin-auth';
 
 // 上传插件文件
 export async function POST(request: NextRequest) {
   try {
-    // 统一身份验证（需要主账户权限）
-    const authResult = authenticateMainAccount(request);
-    if (!authResult.success) {
-      return authResult.response!;
+    // 统一身份验证（需要管理员插件管理权限）
+    const admin = await getAdminFromRequest(request);
+    if (!admin) {
+      return NextResponse.json(errorResponse('未授权访问'), {
+        status: 401,
+      });
     }
 
     const formData = await request.formData();
@@ -81,10 +83,12 @@ export async function POST(request: NextRequest) {
 // 获取上传文件列表
 export async function GET(request: NextRequest) {
   try {
-    // 统一身份验证（需要主账户权限）
-    const authResult = authenticateMainAccount(request);
-    if (!authResult.success) {
-      return authResult.response!;
+    // 统一身份验证（需要管理员插件管理权限）
+    const admin = await getAdminFromRequest(request);
+    if (!admin) {
+      return NextResponse.json(errorResponse('未授权访问'), {
+        status: 401,
+      });
     }
 
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'plugins');

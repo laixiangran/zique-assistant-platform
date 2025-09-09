@@ -6,6 +6,7 @@ import {
   errorResponse,
   formatObjectDates,
 } from '@/lib/utils';
+import { getAdminFromRequest } from '@/lib/admin-auth';
 
 // 获取会员套餐列表
 export async function GET(request: NextRequest) {
@@ -49,20 +50,13 @@ export async function GET(request: NextRequest) {
 // 创建会员套餐（管理员功能）
 export async function POST(request: NextRequest) {
   try {
-    // 统一身份验证
-    const authResult = await authenticateRequest(request);
-    if (!authResult.success) {
-      return NextResponse.json(errorResponse(authResult.error!), {
+    // 管理员身份验证
+    const admin = await getAdminFromRequest(request);
+    if (!admin) {
+      return NextResponse.json(errorResponse('未授权访问'), {
         status: 401,
       });
     }
-
-    const decoded = authResult.user!;
-
-    // 这里应该检查用户是否为管理员，暂时跳过
-    // if (decoded.role !== 'admin') {
-    //   return NextResponse.json(errorResponse('权限不足'), { status: 403 })
-    // }
 
     const body = await request.json();
     const {

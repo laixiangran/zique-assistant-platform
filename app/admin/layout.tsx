@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -11,24 +11,19 @@ import {
   Button,
   message,
   Tag,
-  Modal,
-  Descriptions,
   Spin,
 } from 'antd';
 import {
-  ShopOutlined,
   UserOutlined,
   TeamOutlined,
   LogoutOutlined,
-  ShareAltOutlined,
   MenuUnfoldOutlined,
   MenuFoldOutlined,
   DashboardOutlined,
-  CrownOutlined,
   AppstoreOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { authAPI, userPackagesAPI } from '../services';
+import { adminAuthAPI } from '../services';
 import logo from '../../public/logo.png';
 
 const { Header, Sider, Content } = Layout;
@@ -38,9 +33,10 @@ interface UserInfo {
   username: string;
   phone?: string;
   email?: string;
-  free_mall_count?: number;
-  used_mall_count?: number;
-  accountType: 'main' | 'sub';
+  role: 'super_admin' | 'admin';
+  status: string;
+  lastLoginTime?: string;
+  lastLoginIp?: string;
 }
 
 export default function mainLayout({
@@ -51,33 +47,32 @@ export default function mainLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userPackage, setUserPackage] = useState<any>({});
-  const [packageModalVisible, setPackageModalVisible] = useState(false);
+  // const [userPackage, setUserPackage] = useState<any>({});
+  // const [packageModalVisible, setPackageModalVisible] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   // 根据当前路径获取选中的菜单项
   const getSelectedKey = () => {
-    if (pathname.startsWith('/main/home')) return ['home'];
-    if (pathname.startsWith('/main/malls')) return ['malls'];
-    if (pathname.startsWith('/main/teams')) return ['teams'];
-    if (pathname.startsWith('/main/invitations')) return ['invitations'];
+    if (pathname.startsWith('/admin/home')) return ['home'];
+    if (pathname.startsWith('/admin/plugin-versions'))
+      return ['plugin-versions'];
     return ['home'];
   };
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
-      const response = await authAPI.getCurrentUser();
-      const userData = response.data;
-      setUserInfo(userData);
-      // 只有主账户才获取用户套餐信息
-      if (userData?.accountType === 'main') {
-        fetchUserPackages();
+      const token =
+        localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      if (!token) {
+        // 没有token，直接跳转到登录页面
+        router.push('/admin/login');
+        return;
       }
+
+      const response = await adminAuthAPI.profile();
+      setUserInfo(response.data);
     } catch (error) {
       console.error('认证检查失败:', error);
       // 认证失败时清理所有存储的认证信息
@@ -87,34 +82,27 @@ export default function mainLayout({
       sessionStorage.removeItem('user');
       sessionStorage.removeItem('accountType');
       sessionStorage.removeItem('token');
-      router.push('/login');
+      router.push('/admin/login');
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  // 获取用户套餐信息
-  const fetchUserPackages = async () => {
-    try {
-      const response = await userPackagesAPI.getUserPackages({
-        page: 1,
-        pageSize: 10,
-      });
-      const data = response.data;
-      setUserPackage(data?.userPackages[0] || {});
-    } catch (error) {
-      console.error('获取用户套餐信息失败:', error);
+  useEffect(() => {
+    // 如果是登录页面，不执行认证检查
+    if (pathname !== '/admin/login') {
+      checkAuth();
     }
-  };
+  }, [pathname, checkAuth]);
 
-  // 显示套餐详情
-  const showPackageDetails = () => {
-    setPackageModalVisible(true);
-  };
+  // 如果是登录页面，直接渲染子组件，不应用布局
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
 
   const handleLogout = async () => {
     try {
-      await authAPI.logout();
+      await adminAuthAPI.logout();
       // 清理所有存储的认证信息
       localStorage.removeItem('user');
       localStorage.removeItem('accountType');
@@ -123,7 +111,7 @@ export default function mainLayout({
       sessionStorage.removeItem('accountType');
       sessionStorage.removeItem('token');
       message.success('退出成功');
-      router.push('/login');
+      router.push('/admin/login');
     } catch (error) {
       console.error('退出失败:', error);
       // 即使退出API失败，也要清理本地存储
@@ -134,7 +122,7 @@ export default function mainLayout({
       sessionStorage.removeItem('accountType');
       sessionStorage.removeItem('token');
       message.error('退出失败');
-      router.push('/login');
+      router.push('/admin/login');
     }
   };
 
@@ -167,26 +155,21 @@ export default function mainLayout({
       icon: <DashboardOutlined />,
       label: '首页',
     },
-    // 只有主账户才显示团队管理和邀请奖励
-    ...(userInfo?.accountType === 'main'
-      ? [
-          {
-            key: 'malls',
-            icon: <ShopOutlined />,
-            label: '店铺管理',
-          },
-          {
-            key: 'teams',
-            icon: <TeamOutlined />,
-            label: '团队管理',
-          },
-          {
-            key: 'invitations',
-            icon: <ShareAltOutlined />,
-            label: '邀请奖励',
-          },
-        ]
-      : []),
+    {
+      key: 'plugin-versions',
+      icon: <AppstoreOutlined />,
+      label: '插件管理',
+    },
+    {
+      key: 'users',
+      icon: <UserOutlined />,
+      label: '用户管理',
+    },
+    {
+      key: 'settings',
+      icon: <TeamOutlined />,
+      label: '系统设置',
+    },
   ];
 
   if (loading) {
@@ -237,7 +220,7 @@ export default function mainLayout({
                 margin: 0,
               }}
             >
-              {process.env.NEXT_PUBLIC_APP_NAME}
+              紫雀管理后台
             </h1>
           </div>
 
@@ -245,24 +228,18 @@ export default function mainLayout({
             <span
               style={{ color: '#666', fontWeight: 500, whiteSpace: 'nowrap' }}
             >
-              欢迎，{userInfo?.username || '用户'}
-              {userInfo?.accountType === 'sub' && (
+              欢迎，{userInfo?.username || '管理员'}
+              {userInfo?.role === 'admin' && (
                 <Tag color='blue' style={{ marginLeft: '8px' }}>
-                  子账户
+                  管理员
+                </Tag>
+              )}
+              {userInfo?.role === 'super_admin' && (
+                <Tag color='red' style={{ marginLeft: '8px' }}>
+                  超级管理员
                 </Tag>
               )}
             </span>
-            {/* 只有主账户才显示套餐信息 */}
-            {userInfo?.accountType === 'main' && (
-              <Tag
-                icon={<CrownOutlined />}
-                color='gold'
-                style={{ cursor: 'pointer' }}
-                onClick={() => showPackageDetails()}
-              >
-                {userPackage.package?.packageName || '套餐名称'}
-              </Tag>
-            )}
             <Dropdown menu={{ items: userMenuItems }} placement='bottomRight'>
               <Avatar
                 icon={<UserOutlined />}
@@ -290,13 +267,9 @@ export default function mainLayout({
               }}
               onClick={({ key }) => {
                 if (key === 'home') {
-                  router.push('/main/home');
-                } else if (key === 'malls') {
-                  router.push('/main/malls');
-                } else if (key === 'teams') {
-                  router.push('/main/teams');
-                } else if (key === 'invitations') {
-                  router.push('/main/invitations');
+                  router.push('/admin/home');
+                } else if (key === 'plugin-versions') {
+                  router.push('/admin/plugin-versions');
                 }
               }}
             />
@@ -329,74 +302,6 @@ export default function mainLayout({
           </Content>
         </Layout>
       </Layout>
-
-      {/* 套餐详情弹窗 */}
-      <Modal
-        title='套餐详情'
-        open={packageModalVisible}
-        onCancel={() => setPackageModalVisible(false)}
-        footer={[
-          <Button key='close' onClick={() => setPackageModalVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={600}
-      >
-        {userPackage && (
-          <Descriptions column={1} bordered>
-            <Descriptions.Item label='套餐名称'>
-              {userPackage.package?.packageName}
-            </Descriptions.Item>
-            <Descriptions.Item label='套餐描述'>
-              {userPackage.package?.packageDesc || '暂无描述'}
-            </Descriptions.Item>
-            <Descriptions.Item label='套餐原价'>
-              ¥{userPackage.package?.originalPrice || 0}
-            </Descriptions.Item>
-            <Descriptions.Item label='当前价格'>
-              ¥
-              {(userPackage.package?.originalPrice *
-                (100 - userPackage.package?.discountPercent)) /
-                100 || 0}
-              （
-              {+userPackage.package?.discountPercent === 100
-                ? '免费'
-                : `${+(
-                    (100 - +userPackage.package?.discountPercent) /
-                    100
-                  ).toFixed(1)}折`}
-              ）
-            </Descriptions.Item>
-            <Descriptions.Item label='套餐时长'>
-              {userPackage.package?.durationMonths || 0} 个月
-            </Descriptions.Item>
-            <Descriptions.Item label='最多绑定店铺数'>
-              {userPackage.package?.maxBindMall || 0} 个
-            </Descriptions.Item>
-            <Descriptions.Item label='到期时间'>
-              {(() => {
-                if (!userPackage.expireTime) {
-                  return '暂无';
-                }
-                const expireDate = new Date(userPackage.expireTime);
-                const now = new Date();
-                const isExpired = expireDate < now;
-                return (
-                  <span style={{ color: isExpired ? '#ff4d4f' : '#8b5cf6' }}>
-                    {userPackage.expireTime}
-                    {isExpired && ' (已过期)'}
-                  </span>
-                );
-              })()}
-            </Descriptions.Item>
-            <Descriptions.Item label='状态'>
-              <Tag color={userPackage.package?.isActive ? 'green' : 'red'}>
-                {userPackage.package?.isActive ? '已激活' : '待激活'}
-              </Tag>
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
     </Layout>
   );
 }

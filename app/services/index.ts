@@ -14,7 +14,11 @@ const apiClient = axios.create({
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config) => {
-    // 可以在这里添加token等认证信息
+    // 自动添加token到请求头
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -120,6 +124,19 @@ export const authAPI = {
   // 重置密码
   resetPassword: (token: string, password: string) =>
     request.post('/auth/reset-password', { token, password }),
+};
+
+// 管理员认证API
+export const adminAuthAPI = {
+  // 管理员登录
+  login: (loginData: { username: string; password: string }) =>
+    request.post('/admin/login', loginData),
+
+  // 管理员登出
+  logout: () => request.post('/admin/logout'),
+
+  // 获取管理员个人信息
+  profile: (signal?: AbortSignal) => request.get('/admin/profile', { signal }),
 };
 
 // 店铺相关API

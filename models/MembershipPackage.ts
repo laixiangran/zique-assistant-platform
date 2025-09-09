@@ -5,7 +5,7 @@ interface MembershipPackageAttributes {
   id: number;
   packageName: string;
   packageDesc?: string;
-  packageType?: string;
+  packageType?: 'try' | 'official';
   originalPrice?: number;
   durationMonths?: number;
   maxBindMall?: number;
@@ -44,7 +44,7 @@ class MembershipPackage
   public id!: number;
   public packageName!: string;
   public packageDesc?: string;
-  public packageType?: string;
+  public packageType?: 'try' | 'official';
   public originalPrice?: number;
   public durationMonths?: number;
   public maxBindMall?: number;

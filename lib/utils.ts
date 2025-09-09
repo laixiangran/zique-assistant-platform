@@ -21,9 +21,25 @@ export interface JWTPayload {
   exp?: number;
 }
 
+export interface AdminJWTPayload {
+  adminId: number;
+  username: string;
+  role: 'super_admin' | 'admin';
+  type: 'admin';
+  iat?: number;
+  exp?: number;
+}
+
 // 生成JWT token
 export function generateToken(
   payload: Omit<JWTPayload, 'iat' | 'exp'>
+): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+}
+
+// 生成管理员JWT token
+export function generateAdminToken(
+  payload: Omit<AdminJWTPayload, 'iat' | 'exp'>
 ): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
@@ -32,6 +48,16 @@ export function generateToken(
 export function verifyToken(token: string): JWTPayload | null {
   try {
     return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch (error) {
+    return null;
+  }
+}
+
+// 验证管理员JWT token
+export function verifyAdminToken(token: string): AdminJWTPayload | null {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as AdminJWTPayload;
+    return decoded.type === 'admin' ? decoded : null;
   } catch (error) {
     return null;
   }
@@ -53,6 +79,13 @@ export interface AuthResult {
   success: boolean;
   error?: string;
   user?: JWTPayload;
+  response?: NextResponse;
+}
+
+export interface AdminAuthResult {
+  success: boolean;
+  error?: string;
+  admin?: AdminJWTPayload;
   response?: NextResponse;
 }
 
@@ -96,6 +129,64 @@ export function authenticateMainAccount(request: NextRequest): AuthResult {
     return {
       success: false,
       response: NextResponse.json(errorResponse('只有主账户可以执行此操作'), {
+        status: 403,
+      }),
+    };
+  }
+
+  return authResult;
+}
+
+// 管理员身份验证
+export function authenticateAdmin(request: NextRequest): AdminAuthResult {
+  // 获取token
+  const token =
+    request.cookies.get('admin_token')?.value ||
+    request.headers.get('authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return {
+      success: false,
+      response: NextResponse.json(errorResponse('管理员未登录'), {
+        status: 401,
+      }),
+    };
+  }
+
+  // 验证token
+  const decoded = verifyAdminToken(token);
+  if (!decoded) {
+    return {
+      success: false,
+      response: NextResponse.json(errorResponse('管理员token无效'), {
+        status: 401,
+      }),
+    };
+  }
+
+  return {
+    success: true,
+    admin: decoded,
+  };
+}
+
+// 验证管理员插件管理权限
+export function authenticateAdminPluginPermission(
+  request: NextRequest
+): AdminAuthResult {
+  const authResult = authenticateAdmin(request);
+
+  if (!authResult.success) {
+    return authResult;
+  }
+
+  const admin = authResult.admin!;
+
+  // 只检查管理员角色
+  if (admin.role !== 'super_admin' && admin.role !== 'admin') {
+    return {
+      success: false,
+      response: NextResponse.json(errorResponse('没有插件管理权限'), {
         status: 403,
       }),
     };

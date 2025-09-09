@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PluginVersion } from '@/models';
-import { successResponse, errorResponse, formatObjectDates } from '@/lib/utils';
+import { 
+  successResponse, 
+  errorResponse, 
+  formatObjectDates
+} from '@/lib/utils';
+import { getAdminFromRequest } from '@/lib/admin-auth';
 import { Op } from 'sequelize';
 import fs from 'fs';
 import path from 'path';
@@ -90,6 +95,14 @@ export async function GET(request: NextRequest) {
 // 创建新版本（管理员功能）
 export async function POST(request: NextRequest) {
   try {
+    // 验证管理员权限
+    const admin = await getAdminFromRequest(request);
+    if (!admin) {
+      return NextResponse.json(errorResponse('未授权访问'), {
+        status: 401,
+      });
+    }
+
     const body = await request.json();
     const {
       version,
@@ -151,6 +164,14 @@ export async function POST(request: NextRequest) {
 // 更新版本信息（管理员功能）
 export async function PUT(request: NextRequest) {
   try {
+    // 验证管理员权限
+    const admin = await getAdminFromRequest(request);
+    if (!admin) {
+      return NextResponse.json(errorResponse('未授权访问'), {
+        status: 401,
+      });
+    }
+
     const formData = await request.formData();
     const id = formData.get('id') as string;
     const version = formData.get('version') as string;
@@ -247,6 +268,14 @@ export async function PUT(request: NextRequest) {
 // 删除版本（管理员功能）
 export async function DELETE(request: NextRequest) {
   try {
+    // 验证管理员权限
+    const admin = await getAdminFromRequest(request);
+    if (!admin) {
+      return NextResponse.json(errorResponse('未授权访问'), {
+        status: 401,
+      });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
