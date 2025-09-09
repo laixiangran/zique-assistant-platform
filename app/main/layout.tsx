@@ -25,6 +25,7 @@ import {
   MenuFoldOutlined,
   DashboardOutlined,
   CrownOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { authAPI, userPackagesAPI } from '../services';
@@ -61,6 +62,8 @@ export default function mainLayout({
     if (pathname.startsWith('/main/malls')) return ['malls'];
     if (pathname.startsWith('/main/teams')) return ['teams'];
     if (pathname.startsWith('/main/invitations')) return ['invitations'];
+    if (pathname.startsWith('/main/plugin-versions'))
+      return ['plugin-versions'];
     return ['home'];
   };
 
@@ -184,6 +187,11 @@ export default function mainLayout({
             icon: <ShareAltOutlined />,
             label: '邀请奖励',
           },
+          {
+            key: 'plugin-versions',
+            icon: <AppstoreOutlined />,
+            label: '插件管理',
+          },
         ]
       : []),
   ];
@@ -296,6 +304,8 @@ export default function mainLayout({
                   router.push('/main/teams');
                 } else if (key === 'invitations') {
                   router.push('/main/invitations');
+                } else if (key === 'plugin-versions') {
+                  router.push('/main/plugin-versions');
                 }
               }}
             />

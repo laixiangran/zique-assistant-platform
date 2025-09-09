@@ -86,10 +86,8 @@ export const authAPI = {
   getCurrentUser: (signal?: AbortSignal) => request.get('/auth/me', { signal }),
 
   // 登录
-  login: (loginData: {
-    username: string;
-    password: string;
-  }) => request.post('/auth/login', loginData),
+  login: (loginData: { username: string; password: string }) =>
+    request.post('/auth/login', loginData),
 
   // 获取当前用户信息
   me: () => request.get('/auth/me'),
@@ -204,7 +202,8 @@ export const subAccountsAPI = {
   getSubAccount: (id: string) => request.get(`/sub-accounts/${id}`),
 
   // 重置子账户密码
-  resetSubAccountPassword: (id: string) => request.post(`/sub-accounts/${id}/reset-password`),
+  resetSubAccountPassword: (id: string) =>
+    request.post(`/sub-accounts/${id}/reset-password`),
 };
 
 // 套餐相关API
@@ -291,6 +290,84 @@ export const invitationRewardsAPI = {
       signal,
     });
   },
+};
+
+// 插件版本管理API
+export const pluginVersionsAPI = {
+  // 检查版本更新
+  checkUpdate: (currentVersion?: string, signal?: AbortSignal) => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('action', 'check');
+    if (currentVersion) {
+      queryParams.append('currentVersion', currentVersion);
+    }
+    return request.get(`/plugin-versions?${queryParams.toString()}`, {
+      signal,
+    });
+  },
+
+  // 获取版本列表
+  getVersions: (
+    params: {
+      pageIndex?: number;
+      pageSize?: number;
+      status?: string;
+    } = {},
+    signal?: AbortSignal
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.pageIndex)
+      queryParams.append('pageIndex', params.pageIndex.toString());
+    if (params.pageSize)
+      queryParams.append('pageSize', params.pageSize.toString());
+    if (params.status) queryParams.append('status', params.status);
+
+    return request.get(`/plugin-versions?${queryParams.toString()}`, {
+      signal,
+    });
+  },
+
+  // 创建新版本
+  createVersion: (versionData: {
+    version: string;
+    releaseDate: string;
+    downloadUrl: string;
+    fileName: string;
+    fileSize: number;
+    description?: string;
+    changelog?: string;
+    isLatest?: boolean;
+  }) => request.post('/plugin-versions', versionData),
+
+  // 更新版本信息
+  updateVersion: (id: number, updateData: any) =>
+    request.put('/plugin-versions', { id, ...updateData }),
+
+  // 更新版本信息（支持文件上传）
+  updateVersionWithFile: (formData: FormData) =>
+    request.put('/plugin-versions', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+
+  // 删除版本
+  deleteVersion: (id: number) => request.delete(`/plugin-versions?id=${id}`),
+
+  // 上传插件文件
+  uploadFile: (formData: FormData) =>
+    request.post('/plugin-versions/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+
+  // 记录下载统计
+  recordDownload: (data: {
+    versionId: number;
+    userAgent?: string;
+    ip?: string;
+  }) => request.post('/plugin-versions/download', data),
 };
 
 export default apiClient;

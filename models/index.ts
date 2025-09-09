@@ -9,6 +9,7 @@ import Invitation from './Invitation';
 import InvitationReward from './InvitationReward';
 import UserOperationLog from './UserOperationLog';
 import PasswordResetToken from './PasswordResetToken';
+import PluginVersion from './PluginVersion';
 
 // 设置模型关联
 SubAccount.belongsTo(User, {
@@ -34,6 +35,7 @@ export {
   InvitationReward,
   UserOperationLog,
   PasswordResetToken,
+  PluginVersion,
 };
 
 // 初始化数据库连接和模型同步
@@ -76,6 +78,7 @@ export default {
   InvitationReward,
   UserOperationLog,
   PasswordResetToken,
+  PluginVersion,
   initDatabase,
   closeDatabase,
 };

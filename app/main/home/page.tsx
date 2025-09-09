@@ -23,6 +23,7 @@ import { mallsAPI, subAccountsAPI, invitationsAPI } from '../../services';
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
+  const [showVersionAlert, setShowVersionAlert] = useState(true);
   const [mallQuota, setMallQuota] = useState<any>({
     totalQuota: 0,
     currentBindCount: 0,
