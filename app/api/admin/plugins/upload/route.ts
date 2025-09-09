@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import {
-  successResponse,
-  errorResponse,
-} from '@/lib/utils';
+import { successResponse, errorResponse } from '@/lib/utils';
 import { getAdminFromRequest } from '@/lib/admin-auth';
 
 // 上传插件文件

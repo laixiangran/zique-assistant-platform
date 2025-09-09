@@ -55,8 +55,7 @@ export default function mainLayout({
   // 根据当前路径获取选中的菜单项
   const getSelectedKey = () => {
     if (pathname.startsWith('/admin/home')) return ['home'];
-    if (pathname.startsWith('/admin/plugin-versions'))
-      return ['plugin-versions'];
+    if (pathname.startsWith('/admin/plugins')) return ['plugins'];
     return ['home'];
   };
 
@@ -157,7 +156,7 @@ export default function mainLayout({
       label: '首页',
     },
     {
-      key: 'plugin-versions',
+      key: 'plugins',
       icon: <AppstoreOutlined />,
       label: '插件管理',
     },
@@ -269,8 +268,8 @@ export default function mainLayout({
               onClick={({ key }) => {
                 if (key === 'home') {
                   router.push('/admin/home');
-                } else if (key === 'plugin-versions') {
-                  router.push('/admin/plugin-versions');
+                } else if (key === 'plugins') {
+                  router.push('/admin/plugins');
                 }
               }}
             />

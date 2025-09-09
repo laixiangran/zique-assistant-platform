@@ -11,13 +11,13 @@ import {
   Form,
   Input,
   Select,
-  DatePicker,
   InputNumber,
   message,
   Popconfirm,
   Upload,
   Row,
   Col,
+  Switch,
 } from 'antd';
 import {
   PlusOutlined,
@@ -25,12 +25,9 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   UploadOutlined,
-  ReloadOutlined,
-  SearchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';
-import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -81,15 +78,17 @@ const AdminPluginVersionsPage: React.FC = () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: pageSize.toString(),
+        pageIndex: currentPage.toString(),
+        pageSize: pageSize.toString(),
         ...(searchText && { search: searchText }),
         ...(statusFilter && { status: statusFilter }),
       });
 
-      // 获取token，优先从localStorage，然后从sessionStorage
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
+      // 获取admin_token，优先从localStorage，然后从sessionStorage
+      const token =
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token');
+
       const response = await fetch(`/api/admin/plugins?${params}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -98,8 +97,8 @@ const AdminPluginVersionsPage: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setPlugins(data.data.items || []);
-        setTotal(data.data.total || 0);
+        setPlugins(data.data.list || []);
+        setTotal(data.data.pagination?.total || 0);
       } else {
         message.error('获取插件列表失败');
       }
@@ -115,18 +114,6 @@ const AdminPluginVersionsPage: React.FC = () => {
     fetchPlugins();
   }, [currentPage, pageSize, searchText, statusFilter]);
 
-  // 处理搜索
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-    setCurrentPage(1);
-  };
-
-  // 处理状态筛选
-  const handleStatusFilter = (value: string) => {
-    setStatusFilter(value);
-    setCurrentPage(1);
-  };
-
   // 打开创建/编辑模态框
   const openModal = (plugin?: PluginVersion) => {
     setEditingPlugin(plugin || null);
@@ -134,10 +121,14 @@ const AdminPluginVersionsPage: React.FC = () => {
     if (plugin) {
       form.setFieldsValue({
         ...plugin,
-        releaseDate: dayjs(plugin.releaseDate),
       });
     } else {
       form.resetFields();
+      // 设置默认值
+      form.setFieldsValue({
+        status: 'active',
+        isLatest: true,
+      });
     }
   };
 
@@ -151,36 +142,77 @@ const AdminPluginVersionsPage: React.FC = () => {
   // 提交表单
   const handleSubmit = async (values: any) => {
     try {
-      const formData: PluginFormData = {
-        ...values,
-        releaseDate: values.releaseDate.format('YYYY-MM-DD'),
-      };
+      // 获取admin_token，优先从localStorage，然后从sessionStorage
+      const token =
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token');
 
-      const url = editingPlugin
-        ? `/api/admin/plugins/${editingPlugin.id}`
-        : '/api/admin/plugins';
+      if (editingPlugin) {
+        // 编辑模式：使用FormData格式
+        const formData = new FormData();
+        formData.append('id', editingPlugin.id.toString());
+        formData.append('version', values.version);
+        // releaseDate 不需要传递，编辑时保持原有发布时间
+        formData.append('description', values.description || '');
+        formData.append('changelog', values.changelog || '');
+        formData.append('isLatest', values.isLatest.toString());
+        formData.append('status', values.status);
 
-      const method = editingPlugin ? 'PUT' : 'POST';
+        // 如果有文件上传，添加文件
+        if (
+          values.file &&
+          values.file.fileList &&
+          values.file.fileList.length > 0
+        ) {
+          formData.append('file', values.file.fileList[0].originFileObj);
+        }
 
-      // 获取token，优先从localStorage，然后从sessionStorage
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
+        const response = await fetch('/api/admin/plugins', {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
 
-      if (response.ok) {
-        message.success(editingPlugin ? '更新插件成功' : '创建插件成功');
-        closeModal();
-        fetchPlugins();
+        if (response.ok) {
+          message.success('更新插件成功');
+          closeModal();
+          fetchPlugins();
+        } else {
+          const errorData = await response.json();
+          message.error(errorData.message || '更新失败');
+        }
       } else {
-        const errorData = await response.json();
-        message.error(errorData.message || '操作失败');
+        // 新增模式：使用JSON格式，发布日期由API自动生成
+        const jsonData = {
+          version: values.version,
+          fileName: values.fileName || '',
+          fileSize: values.fileSize || 0,
+          downloadUrl: values.downloadUrl || '',
+          description: values.description || '',
+          changelog: values.changelog || '',
+          isLatest: values.isLatest,
+          status: values.status,
+        };
+
+        const response = await fetch('/api/admin/plugins', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(jsonData),
+        });
+
+        if (response.ok) {
+          message.success('创建插件成功');
+          closeModal();
+          fetchPlugins();
+        } else {
+          const errorData = await response.json();
+          message.error(errorData.message || '创建失败');
+        }
       }
     } catch (error) {
       console.error('提交失败:', error);
@@ -191,16 +223,16 @@ const AdminPluginVersionsPage: React.FC = () => {
   // 删除插件
   const handleDelete = async (id: number) => {
     try {
-      // 获取token，优先从localStorage，然后从sessionStorage
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      
-      const response = await fetch('/api/admin/plugins', {
+      // 获取admin_token，优先从localStorage，然后从sessionStorage
+      const token =
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token');
+
+      const response = await fetch(`/api/admin/plugins?id=${id}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ids: [id] }),
       });
 
       if (response.ok) {
@@ -229,16 +261,19 @@ const AdminPluginVersionsPage: React.FC = () => {
   // 文件上传配置
   const uploadProps: UploadProps = {
     name: 'file',
-    action: '/api/admin/upload',
+    action: '/api/admin/plugins/upload',
     headers: {
-      authorization: `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`,
+      authorization: `Bearer ${
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token')
+      }`,
     },
     onChange(info) {
       if (info.file.status === 'done') {
         const { response } = info.file;
         if (response.success) {
           form.setFieldsValue({
-            downloadUrl: response.data.url,
+            downloadUrl: response.data.downloadUrl,
             fileName: response.data.fileName,
             fileSize: response.data.fileSize,
           });
@@ -249,6 +284,19 @@ const AdminPluginVersionsPage: React.FC = () => {
       } else if (info.file.status === 'error') {
         message.error('文件上传失败');
       }
+    },
+    beforeUpload: (file) => {
+      const isZip = file.name.toLowerCase().endsWith('.zip');
+      if (!isZip) {
+        message.error('只能上传 ZIP 格式的文件!');
+        return false;
+      }
+      const isLt100M = file.size / 1024 / 1024 < 100;
+      if (!isLt100M) {
+        message.error('文件大小不能超过 100MB!');
+        return false;
+      }
+      return true;
     },
   };
 
@@ -266,45 +314,27 @@ const AdminPluginVersionsPage: React.FC = () => {
       ),
     },
     {
-      title: '文件名',
-      dataIndex: 'fileName',
-      key: 'fileName',
+      title: '版本描述',
+      dataIndex: 'description',
+      key: 'description',
+      render: (description: string) => description || '-',
     },
     {
-      title: '文件大小',
-      dataIndex: 'fileSize',
-      key: 'fileSize',
-      render: (size: number) => {
-        const mb = (size / (1024 * 1024)).toFixed(2);
-        return `${mb} MB`;
-      },
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: PluginVersion['status']) => {
-        const info = getStatusInfo(status);
-        return <Tag color={info.color}>{info.text}</Tag>;
-      },
+      title: '更新日志',
+      dataIndex: 'changelog',
+      key: 'changelog',
+      render: (changelog: string) => changelog || '-',
     },
     {
       title: '发布时间',
       dataIndex: 'releaseDate',
       key: 'releaseDate',
-      render: (date: string) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdTime',
-      key: 'createdTime',
-      render: (date: string) => new Date(date).toLocaleString(),
     },
     {
       title: '操作',
       key: 'action',
       render: (_, record: PluginVersion) => (
-        <Space size='middle'>
+        <Space>
           <Button
             type='link'
             icon={<DownloadOutlined />}
@@ -335,19 +365,13 @@ const AdminPluginVersionsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div>
       <Card>
         <div
           style={{
             marginBottom: '16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
           }}
         >
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>
-            插件版本管理
-          </h1>
           <Space>
             <Button
               type='primary'
@@ -356,41 +380,8 @@ const AdminPluginVersionsPage: React.FC = () => {
             >
               新增插件版本
             </Button>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={fetchPlugins}
-              loading={loading}
-            >
-              刷新
-            </Button>
           </Space>
         </div>
-
-        {/* 搜索和筛选 */}
-        <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-          <Col xs={24} sm={12} md={8}>
-            <Input.Search
-              placeholder='搜索版本号'
-              allowClear
-              enterButton={<SearchOutlined />}
-              onSearch={handleSearch}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Select
-              placeholder='筛选状态'
-              allowClear
-              style={{ width: '100%' }}
-              onChange={handleStatusFilter}
-            >
-              <Option value='active'>活跃</Option>
-              <Option value='inactive'>非活跃</Option>
-              <Option value='deprecated'>已弃用</Option>
-            </Select>
-          </Col>
-        </Row>
-
-        {/* 插件列表表格 */}
         <Table
           columns={columns}
           dataSource={plugins}
@@ -420,70 +411,56 @@ const AdminPluginVersionsPage: React.FC = () => {
         footer={null}
         width={800}
       >
-        <Form form={form} layout='vertical' onFinish={handleSubmit}>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='version'
-                label='版本号'
-                rules={[{ required: true, message: '请输入版本号' }]}
-              >
-                <Input placeholder='如：1.0.0' />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='releaseDate'
-                label='发布日期'
-                rules={[{ required: true, message: '请选择发布日期' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='fileName'
-                label='文件名'
-                rules={[{ required: true, message: '请输入文件名' }]}
-              >
-                <Input placeholder='插件文件名' />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='fileSize'
-                label='文件大小（字节）'
-                rules={[{ required: true, message: '请输入文件大小' }]}
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  placeholder='文件大小'
-                  min={0}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+        <Form
+          form={form}
+          layout='vertical'
+          onFinish={handleSubmit}
+          initialValues={{
+            status: 'active',
+            isLatest: true,
+          }}
+        >
+          <Form.Item
+            name='version'
+            label='版本号'
+            rules={[{ required: true, message: '请输入版本号' }]}
+          >
+            <Input placeholder='如：1.0.0' />
+          </Form.Item>
 
           <Form.Item
-            name='downloadUrl'
-            label='下载地址'
-            rules={[{ required: true, message: '请输入下载地址' }]}
+            name='file'
+            label='上传插件文件'
+            rules={
+              editingPlugin
+                ? []
+                : [{ required: true, message: '请上传插件文件' }]
+            }
           >
-            <Input.Group compact>
-              <Input
-                style={{ width: 'calc(100% - 120px)' }}
-                placeholder='下载链接'
-              />
-              <Upload {...uploadProps}>
-                <Button icon={<UploadOutlined />}>上传文件</Button>
-              </Upload>
-            </Input.Group>
+            <Upload {...uploadProps} maxCount={1}>
+              <Button icon={<UploadOutlined />}>上传文件</Button>
+            </Upload>
+          </Form.Item>
+
+          <Form.Item name='description' label='版本描述'>
+            <TextArea rows={3} placeholder='版本描述信息' />
+          </Form.Item>
+
+          <Form.Item name='changelog' label='更新日志'>
+            <TextArea rows={4} placeholder='更新日志内容' />
           </Form.Item>
 
           <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name='isLatest'
+                label='是否最新版本'
+                valuePropName='checked'
+                initialValue={true}
+              >
+                <Switch checkedChildren='是' unCheckedChildren='否' />
+              </Form.Item>
+            </Col>
             <Col xs={24} sm={12}>
               <Form.Item
                 name='status'
@@ -498,27 +475,17 @@ const AdminPluginVersionsPage: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='isLatest'
-                label='是否最新版本'
-                valuePropName='checked'
-                initialValue={false}
-              >
-                <Select>
-                  <Option value={true}>是</Option>
-                  <Option value={false}>否</Option>
-                </Select>
-              </Form.Item>
-            </Col>
           </Row>
 
-          <Form.Item name='description' label='版本描述'>
-            <TextArea rows={3} placeholder='版本描述信息' />
+          {/* 隐藏字段，用于存储自动生成的值 */}
+          <Form.Item name='fileName' hidden>
+            <Input />
           </Form.Item>
-
-          <Form.Item name='changelog' label='更新日志'>
-            <TextArea rows={4} placeholder='更新日志内容' />
+          <Form.Item name='fileSize' hidden>
+            <InputNumber />
+          </Form.Item>
+          <Form.Item name='downloadUrl' hidden>
+            <Input />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
