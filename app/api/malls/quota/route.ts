@@ -11,6 +11,9 @@ import {
   errorResponse,
 } from '@/lib/utils';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic';
+
 // 获取用户店铺绑定配额信息
 export async function GET(request: NextRequest) {
   try {

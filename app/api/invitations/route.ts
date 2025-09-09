@@ -7,6 +7,9 @@ import {
   formatObjectDates,
 } from '@/lib/utils';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic';
+
 // 获取邀请记录
 export async function GET(request: NextRequest) {
   try {

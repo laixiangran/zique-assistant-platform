@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Form, Input, Button, Card, message } from 'antd';
 import {
@@ -21,7 +21,8 @@ interface RegisterFormData {
   invitationCode?: string;
 }
 
-export default function RegisterPage() {
+// 内部组件处理useSearchParams
+function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -204,5 +205,14 @@ export default function RegisterPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+// 主组件用Suspense包装
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div>加载中...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

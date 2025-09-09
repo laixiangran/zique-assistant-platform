@@ -7,6 +7,9 @@ import {
   formatObjectDates,
 } from '@/lib/utils';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // 统一身份验证

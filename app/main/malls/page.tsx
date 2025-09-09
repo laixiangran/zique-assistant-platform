@@ -194,7 +194,7 @@ export default function MallsPage() {
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title='总共可绑定店铺'
+              title='总共可绑定'
               value={quotaInfo?.totalQuota || 0}
               prefix={<ShopOutlined />}
               suffix='个'
@@ -202,7 +202,7 @@ export default function MallsPage() {
           </Col>
           <Col span={6}>
             <Statistic
-              title='已绑定店铺'
+              title='已绑定'
               value={quotaInfo?.currentBindCount || 0}
               prefix={<ShopOutlined />}
               suffix='个'
@@ -211,7 +211,7 @@ export default function MallsPage() {
           </Col>
           <Col span={6}>
             <Statistic
-              title='剩余可绑定店铺'
+              title='剩余可绑定'
               value={quotaInfo?.remainingQuota || 0}
               prefix={<ShopOutlined />}
               suffix='个'
@@ -227,7 +227,7 @@ export default function MallsPage() {
                   fontSize: '14px',
                 }}
               >
-                店铺绑定数明细
+                可绑店铺数明细
               </div>
               <div style={{ fontSize: '12px', color: '#999' }}>
                 会员套餐：{quotaInfo?.packageQuota || 0}个

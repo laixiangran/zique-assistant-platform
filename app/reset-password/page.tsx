@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Form, Input, Button, Card, message } from 'antd';
 import {
@@ -16,7 +16,8 @@ interface ResetPasswordFormData {
   confirmPassword: string;
 }
 
-export default function ResetPasswordPage() {
+// 内部组件处理useSearchParams
+function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -211,5 +212,14 @@ export default function ResetPasswordPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+// 主组件用Suspense包装
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>加载中...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
