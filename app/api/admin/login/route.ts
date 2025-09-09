@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     // 返回用户信息（不包含密码和盐值）
     const { password: _, salt: __, ...adminData } = admin.toJSON();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: '登录成功',
       data: {
@@ -73,6 +73,17 @@ export async function POST(request: NextRequest) {
         accountType: 'admin',
       },
     });
+
+    // 设置cookie，有效期7天
+    response.cookies.set('admin_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7天
+      path: '/'
+    });
+
+    return response;
   } catch (error) {
     console.error('管理员登录失败:', error);
     return NextResponse.json(

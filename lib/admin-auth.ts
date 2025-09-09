@@ -31,12 +31,23 @@ export async function getAdminFromRequest(
   request: NextRequest
 ): Promise<Admin | null> {
   try {
+    let token: string | null = null;
+
+    // 首先尝试从Authorization header获取token
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+
+    // 如果header中没有token，尝试从cookie中获取
+    if (!token) {
+      token = request.cookies.get('admin_token')?.value || null;
+    }
+
+    if (!token) {
       return null;
     }
 
-    const token = authHeader.substring(7);
     const payload = await verifyAdminToken(token);
     if (!payload) {
       return null;

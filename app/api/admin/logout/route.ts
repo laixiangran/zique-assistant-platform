@@ -11,10 +11,21 @@ export async function POST(request: NextRequest) {
       console.log(`管理员 ${admin.username} 退出登录`);
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: '退出成功',
     });
+
+    // 清除cookie
+    response.cookies.set('admin_token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0, // 立即过期
+      path: '/'
+    });
+
+    return response;
   } catch (error) {
     console.error('管理员退出失败:', error);
     return NextResponse.json(

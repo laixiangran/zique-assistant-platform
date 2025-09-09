@@ -14,8 +14,17 @@ const apiClient = axios.create({
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config) => {
-    // 自动添加token到请求头
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    // 根据请求路径智能选择token
+    let token: string | null = null;
+    
+    // 如果是管理员相关的API，使用admin_token
+    if (config.url && config.url.startsWith('/admin')) {
+      token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+    } else {
+      // 普通用户API使用普通token
+      token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    }
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

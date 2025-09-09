@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Button, Card, message, Checkbox } from 'antd';
+import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import Link from 'next/link';
-import { adminAuthAPI } from '@/app/services';
+import { adminAuthAPI } from '../../services';
 import './page.scss';
 
 interface LoginFormData {
@@ -22,8 +21,8 @@ export default function LoginPage() {
   // 页面加载时检查是否有记住的登录信息
   useEffect(() => {
     // 检查localStorage中是否有用户信息（记住我）
-    const userFromLocalStorage = localStorage.getItem('user');
-    const tokenFromLocalStorage = localStorage.getItem('token');
+    const userFromLocalStorage = localStorage.getItem('admin_user');
+    const tokenFromLocalStorage = localStorage.getItem('admin_token');
 
     if (userFromLocalStorage && tokenFromLocalStorage) {
       // 存在记住的登录信息，直接跳转到主页
@@ -32,8 +31,8 @@ export default function LoginPage() {
     }
 
     // 检查sessionStorage中是否有用户信息
-    const userFromSessionStorage = sessionStorage.getItem('user');
-    const tokenFromSessionStorage = sessionStorage.getItem('token');
+    const userFromSessionStorage = sessionStorage.getItem('admin_user');
+    const tokenFromSessionStorage = sessionStorage.getItem('admin_token');
 
     if (userFromSessionStorage && tokenFromSessionStorage) {
       // 存在会话登录信息，直接跳转到主页
@@ -55,18 +54,10 @@ export default function LoginPage() {
       // 响应拦截器已经处理了success检查，直接使用返回的数据
       message.success('登录成功');
 
-      // 根据"记住我"选项决定是否存储用户信息到localStorage
-      if (values.remember) {
-        // 存储用户信息到localStorage实现持久化登录
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('accountType', data.accountType);
-        localStorage.setItem('token', data.token);
-      } else {
-        // 仅存储到sessionStorage，关闭浏览器后失效
-        sessionStorage.setItem('user', JSON.stringify(data.user));
-        sessionStorage.setItem('accountType', data.accountType);
-        sessionStorage.setItem('token', data.token);
-      }
+      // 管理员登录默认保存到localStorage，无论是否勾选"记住我"
+      localStorage.setItem('admin_user', JSON.stringify(data.user));
+      localStorage.setItem('admin_accountType', data.accountType);
+      localStorage.setItem('admin_token', data.token);
 
       // 跳转到主页面
       router.push('/admin/home');

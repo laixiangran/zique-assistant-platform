@@ -63,7 +63,8 @@ export default function mainLayout({
   const checkAuth = useCallback(async () => {
     try {
       const token =
-        localStorage.getItem('token') || sessionStorage.getItem('token');
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token');
 
       if (!token) {
         // 没有token，直接跳转到登录页面
@@ -76,12 +77,12 @@ export default function mainLayout({
     } catch (error) {
       console.error('认证检查失败:', error);
       // 认证失败时清理所有存储的认证信息
-      localStorage.removeItem('user');
-      localStorage.removeItem('accountType');
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('accountType');
-      sessionStorage.removeItem('token');
+      localStorage.removeItem('admin_user');
+      localStorage.removeItem('admin_accountType');
+      localStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_user');
+      sessionStorage.removeItem('admin_accountType');
+      sessionStorage.removeItem('admin_token');
       router.push('/admin/login');
     } finally {
       setLoading(false);
@@ -104,23 +105,23 @@ export default function mainLayout({
     try {
       await adminAuthAPI.logout();
       // 清理所有存储的认证信息
-      localStorage.removeItem('user');
-      localStorage.removeItem('accountType');
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('accountType');
-      sessionStorage.removeItem('token');
+      localStorage.removeItem('admin_user');
+      localStorage.removeItem('admin_accountType');
+      localStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_user');
+      sessionStorage.removeItem('admin_accountType');
+      sessionStorage.removeItem('admin_token');
       message.success('退出成功');
       router.push('/admin/login');
     } catch (error) {
       console.error('退出失败:', error);
       // 即使退出API失败，也要清理本地存储
-      localStorage.removeItem('user');
-      localStorage.removeItem('accountType');
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('accountType');
-      sessionStorage.removeItem('token');
+      localStorage.removeItem('admin_user');
+      localStorage.removeItem('admin_accountType');
+      localStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_user');
+      sessionStorage.removeItem('admin_accountType');
+      sessionStorage.removeItem('admin_token');
       message.error('退出失败');
       router.push('/admin/login');
     }
