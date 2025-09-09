@@ -6,8 +6,8 @@ import theme from '@/app/theme';
 import './globals.scss';
 
 export const metadata: Metadata = {
-  title: '紫鹊跨境运营平台',
-  description: '紫鹊跨境运营平台',
+  title: `${process.env.NEXT_PUBLIC_APP_NAME}`,
+  description: `${process.env.NEXT_PUBLIC_APP_DESC}`,
 };
 const RootLayout = ({ children }: React.PropsWithChildren) => (
   <html lang='zh-CN'>

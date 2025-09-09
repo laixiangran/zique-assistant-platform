@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
             <p className='description'>
               请输入您的邮箱地址，我们将向您发送重置密码的链接。
             </p>
-            
+
             <Form
               form={form}
               name='forgot-password'
@@ -69,10 +69,7 @@ export default function ForgotPasswordPage() {
                   { type: 'email', message: '请输入有效的邮箱地址' },
                 ]}
               >
-                <Input 
-                  prefix={<MailOutlined />} 
-                  placeholder='邮箱地址' 
-                />
+                <Input prefix={<MailOutlined />} placeholder='邮箱地址' />
               </Form.Item>
 
               <Form.Item>
@@ -83,9 +80,9 @@ export default function ForgotPasswordPage() {
             </Form>
 
             <div className='back-to-login'>
-              <Button 
-                type='link' 
-                icon={<ArrowLeftOutlined />} 
+              <Button
+                type='link'
+                icon={<ArrowLeftOutlined />}
                 onClick={handleBackToLogin}
               >
                 返回登录
@@ -102,7 +99,7 @@ export default function ForgotPasswordPage() {
             <p className='note'>
               如果您在几分钟内没有收到邮件，请检查邮箱地址是否正确。
             </p>
-            
+
             <div className='actions'>
               <Button type='primary' onClick={handleBackToLogin}>
                 返回登录
@@ -115,7 +112,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <div>
-          <p>© 2025 紫雀跨境运营平台. 保留所有权利.</p>
+          <p>© 2025 {process.env.NEXT_PUBLIC_APP_NAME}. 保留所有权利.</p>
         </div>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PasswordResetToken } from '@/models';
-import { successResponse, errorResponse } from '@/lib/utils';
+import { PasswordResetToken, UserOperationLog } from '@/models';
+import { successResponse, errorResponse, getClientIP } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +23,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (!resetToken) {
+      // 无效令牌无法获取userId，记录到控制台日志
+      console.warn('验证无效的重置密码令牌', {
+        token: token.substring(0, 8) + '...',
+        ipAddress: getClientIP(request),
+        userAgent: request.headers.get('user-agent') || '',
+        timestamp: new Date().toISOString(),
+      });
+
       return NextResponse.json(errorResponse('重置令牌无效'), {
         status: 404,
       });
@@ -30,9 +38,35 @@ export async function POST(request: NextRequest) {
 
     // 检查令牌是否过期
     if (new Date() > resetToken.expiresTime) {
+      // 记录令牌过期的日志
+      try {
+        await UserOperationLog.create({
+          userId: resetToken.userId,
+          operationType: 'password_reset_token_expired',
+          operationDesc: '重置密码令牌已过期',
+          ipAddress: getClientIP(request),
+          userAgent: request.headers.get('user-agent') || '',
+        });
+      } catch (logError) {
+        console.error('记录日志失败:', logError);
+      }
+
       return NextResponse.json(errorResponse('重置令牌已过期'), {
         status: 410,
       });
+    }
+
+    // 记录令牌验证成功的日志
+    try {
+      await UserOperationLog.create({
+        userId: resetToken.userId,
+        operationType: 'password_reset_token_validated',
+        operationDesc: '重置密码令牌验证成功',
+        ipAddress: getClientIP(request),
+        userAgent: request.headers.get('user-agent') || '',
+      });
+    } catch (logError) {
+      console.error('记录日志失败:', logError);
     }
 
     return NextResponse.json(

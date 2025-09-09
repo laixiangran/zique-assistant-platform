@@ -208,7 +208,7 @@ function ResetPasswordForm() {
         </div>
 
         <div>
-          <p>© 2025 紫雀跨境运营平台. 保留所有权利.</p>
+          <p>© 2025 {process.env.NEXT_PUBLIC_APP_NAME}. 保留所有权利.</p>
         </div>
       </Card>
     </div>

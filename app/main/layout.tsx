@@ -236,7 +236,7 @@ export default function mainLayout({
                 margin: 0,
               }}
             >
-              紫雀跨境运营平台
+              {process.env.NEXT_PUBLIC_APP_NAME}
             </h1>
           </div>
 

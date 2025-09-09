@@ -1,9 +1,10 @@
 import { message } from 'antd';
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
+import { getApiBaseUrl, ENV_CONFIG } from '@/lib/env';
 
 // 创建axios实例
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: ENV_CONFIG.isDevelopment ? '/api' : getApiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

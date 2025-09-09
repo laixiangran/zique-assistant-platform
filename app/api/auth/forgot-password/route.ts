@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User, PasswordResetToken } from '@/models';
-import { successResponse, errorResponse } from '@/lib/utils';
+import { User, PasswordResetToken, UserOperationLog } from '@/models';
+import { successResponse, errorResponse, getClientIP } from '@/lib/utils';
+import { getAppBaseUrl } from '@/lib/env';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
@@ -80,18 +81,16 @@ export async function POST(request: NextRequest) {
     try {
       const transporter = createTransporter();
 
-      const resetUrl = `${
-        process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      }/reset-password?token=${resetToken}`;
+      const resetUrl = `${getAppBaseUrl()}/reset-password?token=${resetToken}`;
 
       const mailOptions = {
-        from: `"紫雀跨境运营平台" <${process.env.SMTP_USER}>`,
+        from: `${process.env.NEXT_PUBLIC_APP_NAME} <${process.env.SMTP_USER}>`,
         to: email,
-        subject: '重置密码 - 紫雀跨境运营平台',
+        subject: `重置密码 - ${process.env.NEXT_PUBLIC_APP_NAME}`,
         html: `
           <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #8b5cf6; margin: 0;">紫雀跨境运营平台</h1>
+              <h1 style="color: #8b5cf6; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME}</h1>
             </div>
             
             <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
@@ -113,7 +112,7 @@ export async function POST(request: NextRequest) {
             </div>
             
             <div style="text-align: center; color: #999; font-size: 12px;">
-              <p>© 2025 紫雀跨境运营平台. 保留所有权利.</p>
+              <p>© 2025 ${process.env.NEXT_PUBLIC_APP_NAME}. 保留所有权利.</p>
             </div>
           </div>
         `,
@@ -121,11 +120,33 @@ export async function POST(request: NextRequest) {
 
       await transporter.sendMail(mailOptions);
 
+      // 记录操作日志
+      await UserOperationLog.create({
+        userId: user.id,
+        operationType: 'password_reset_request',
+        operationDesc: '请求重置密码',
+        ipAddress: getClientIP(request),
+        userAgent: request.headers.get('user-agent') || '',
+      });
+
       return NextResponse.json(
         successResponse('重置密码邮件已发送，请检查您的邮箱')
       );
     } catch (emailError) {
       console.error('邮件发送失败:', emailError);
+
+      // 记录邮件发送失败的日志
+      try {
+        await UserOperationLog.create({
+          userId: user.id,
+          operationType: 'password_reset_request_failed',
+          operationDesc: '重置密码邮件发送失败',
+          ipAddress: getClientIP(request),
+          userAgent: request.headers.get('user-agent') || '',
+        });
+      } catch (logError) {
+        console.error('记录日志失败:', logError);
+      }
 
       // 删除创建的令牌，因为邮件发送失败
       await PasswordResetToken.destroy({

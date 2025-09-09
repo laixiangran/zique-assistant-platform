@@ -94,7 +94,7 @@ function RegisterForm() {
     <div className='register-wrapper'>
       <Card>
         <div>
-          <h1>紫雀跨境运营平台</h1>
+          <h1>{process.env.NEXT_PUBLIC_APP_NAME}</h1>
           <h2>用户注册</h2>
         </div>
 
@@ -201,7 +201,7 @@ function RegisterForm() {
         </div>
 
         <div>
-          <p>© 2025 紫雀跨境运营平台. 保留所有权利.</p>
+          <p>© 2025 {process.env.NEXT_PUBLIC_APP_NAME}. 保留所有权利.</p>
         </div>
       </Card>
     </div>
