@@ -2,10 +2,10 @@ import { Sequelize } from 'sequelize';
 import mysql2 from 'mysql2';
 
 const sequelize = new Sequelize({
-  host: process.env.DB_HOST || '127.0.0.1',
-  username: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'ldh20250806&SHOP',
-  database: process.env.DB_NAME || 'zique_assistant_db',
+  host: process.env.DB_HOST,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   port: parseInt(process.env.DB_PORT || '3306'),
   dialect: 'mysql',
   dialectModule: mysql2,

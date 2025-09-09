@@ -8,8 +8,8 @@ import nodemailer from 'nodemailer';
 // 创建邮件传输器
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
+    host: process.env.SMTP_HOST || 'smtp.163.com',
+    port: parseInt(process.env.SMTP_PORT || '465'),
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_USER,
