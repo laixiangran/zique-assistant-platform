@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Spin } from 'antd';
+import { authAPI } from '@/app/services';
 
 export default function Home() {
   const router = useRouter();
@@ -11,16 +12,11 @@ export default function Home() {
     // 检查用户是否已登录
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          // 已登录，跳转到仪表盘
-          router.push('/main/home');
-        } else {
-          // 未登录，跳转到登录页
-          router.push('/login');
-        }
+        await authAPI.me();
+        // 响应拦截器已经处理了success检查，能执行到这里说明已登录
+        router.push('/main/home');
       } catch (error) {
-        // 网络错误，跳转到登录页
+        // 未登录或网络错误，跳转到登录页
         router.push('/login');
       }
     };

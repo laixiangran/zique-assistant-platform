@@ -19,6 +19,19 @@ export async function POST(request: NextRequest) {
         status: 400,
       });
     }
+    
+    // 验证字段长度
+    if (username.length < 3 || username.length > 20) {
+      return NextResponse.json(errorResponse('用户名长度必须在3-20个字符之间'), {
+        status: 400,
+      });
+    }
+    
+    if (password.length < 6 || password.length > 20) {
+      return NextResponse.json(errorResponse('密码长度必须在6-20个字符之间'), {
+        status: 400,
+      });
+    }
 
     let user: any = null;
     let userInfo: any = null;

@@ -118,9 +118,15 @@ export async function POST(request: NextRequest) {
     if (
       !username ||
       typeof username !== 'string' ||
-      username.trim().length < 3
+      username.trim().length < 3 ||
+      username.trim().length > 20
     ) {
-      validationErrors.push('用户名必须是至少3个字符的字符串');
+      validationErrors.push('用户名必须是3-20个字符的字符串');
+    }
+    
+    // 验证用户名格式（只能包含字母、数字和下划线）
+    if (username && typeof username === 'string' && !/^[a-zA-Z0-9_]+$/.test(username.trim())) {
+      validationErrors.push('用户名只能包含字母、数字和下划线');
     }
 
     if (responsibleMalls && !Array.isArray(responsibleMalls)) {

@@ -31,9 +31,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 验证用户名长度
+    // 验证用户名长度和格式
     if (username.length < 3 || username.length > 20) {
       return NextResponse.json(errorResponse('用户名长度应在3-20个字符之间'), {
+        status: 400,
+      });
+    }
+    
+    // 验证用户名格式（只能包含字母、数字和下划线）
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return NextResponse.json(errorResponse('用户名只能包含字母、数字和下划线'), {
         status: 400,
       });
     }

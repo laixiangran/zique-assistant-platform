@@ -86,8 +86,27 @@ export const authAPI = {
   getCurrentUser: (signal?: AbortSignal) => request.get('/auth/me', { signal }),
 
   // 登录
-  login: (credentials: { username: string; password: string }) =>
-    request.post('/auth/login', credentials),
+  login: (loginData: {
+    username: string;
+    password: string;
+  }) => request.post('/auth/login', loginData),
+
+  // 获取当前用户信息
+  me: () => request.get('/auth/me'),
+
+  // 注册
+  register: (userData: {
+    username: string;
+    password: string;
+    email: string;
+    phone: string;
+  }) => request.post('/auth/register', userData),
+
+  // 检查可用性
+  checkAvailability: (data: {
+    type: 'username' | 'email' | 'phone';
+    value: string;
+  }) => request.post('/auth/check-availability', data),
 
   // 登出
   logout: () => request.post('/auth/logout'),

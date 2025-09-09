@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Form, Input, Button, Card, message, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { authAPI } from '@/app/services';
 import './page.scss';
 
 interface LoginFormData {
@@ -44,50 +45,31 @@ export default function LoginPage() {
   const handleLogin = async (values: LoginFormData) => {
     setLoading(true);
     try {
-      // 先尝试主账户登录
-      let response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...values, accountType: 'main' }),
+      // 调用登录API，后端会自动判断主账户或子账户
+      const response = await authAPI.login({
+        username: values.username,
+        password: values.password,
       });
+      const data = response.data;
 
-      let data = await response.json();
+      // 响应拦截器已经处理了success检查，直接使用返回的数据
+      message.success('登录成功');
 
-      // 如果主账户登录失败，尝试子账户登录
-      if (!response.ok) {
-        response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ ...values, accountType: 'sub' }),
-        });
-        data = await response.json();
-      }
-
-      if (response.ok) {
-        message.success(data.message || '登录成功');
-
-        // 根据"记住我"选项决定是否存储用户信息到localStorage
-        if (values.remember) {
-          // 存储用户信息到localStorage实现持久化登录
-          localStorage.setItem('user', JSON.stringify(data.data.user));
-          localStorage.setItem('accountType', data.data.accountType);
-          localStorage.setItem('token', data.data.token);
-        } else {
-          // 仅存储到sessionStorage，关闭浏览器后失效
-          sessionStorage.setItem('user', JSON.stringify(data.data.user));
-          sessionStorage.setItem('accountType', data.data.accountType);
-          sessionStorage.setItem('token', data.data.token);
-        }
-
-        // 跳转到主页面
-        router.push('/main/home');
+      // 根据"记住我"选项决定是否存储用户信息到localStorage
+      if (values.remember) {
+        // 存储用户信息到localStorage实现持久化登录
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('accountType', data.accountType);
+        localStorage.setItem('token', data.token);
       } else {
-        message.error(data.message || '用户名或密码错误');
+        // 仅存储到sessionStorage，关闭浏览器后失效
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+        sessionStorage.setItem('accountType', data.accountType);
+        sessionStorage.setItem('token', data.token);
       }
+
+      // 跳转到主页面
+      router.push('/main/home');
     } catch (error) {
       console.error('登录错误:', error);
       message.error('网络错误，请稍后重试');
