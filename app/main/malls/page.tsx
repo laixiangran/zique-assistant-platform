@@ -105,20 +105,37 @@ export default function MallsPage() {
 
   // 绑定店铺
   const handleAddMall = async (values: any) => {
-    const selectedOption = temuPlatformMalls.find(
-      (mall) => mall.mallId === values.selectedMall
-    );
-    if (selectedOption) {
-      await mallsAPI.createMall({
-        mallId: selectedOption.mallId,
-        mallName: selectedOption.mallName,
-      });
-      message.success('店铺绑定成功');
-      setModalVisible(false);
-      form.resetFields();
-      fetchMalls(pagination.current, pagination.pageSize, searchParams);
-      fetchQuotaInfo(); // 刷新配额信息
+    const selectedMallIds = values.selectedMalls || [];
+    if (selectedMallIds.length === 0) {
+      message.error('请选择要绑定的店铺');
+      return;
     }
+    // 准备批量绑定的店铺数据
+    const mallsToCreate = selectedMallIds
+      .map((mallId: string) => {
+        const selectedMall = temuPlatformMalls.find(
+          (mall) => mall.mallId === mallId
+        );
+        return {
+          mallId: selectedMall?.mallId,
+          mallName: selectedMall?.mallName,
+        };
+      })
+      .filter(
+        (mall: { mallId?: string; mallName?: string }) =>
+          mall.mallId && mall.mallName
+      );
+
+    // 调用批量绑定API
+    await mallsAPI.createMall({
+      malls: mallsToCreate,
+    });
+
+    message.success(`成功绑定 ${mallsToCreate.length} 个店铺`);
+    setModalVisible(false);
+    form.resetFields();
+    fetchMalls(pagination.current, pagination.pageSize, searchParams);
+    fetchQuotaInfo(); // 刷新配额信息
   };
 
   // 处理模态框确定
@@ -208,7 +225,11 @@ export default function MallsPage() {
       setTemuLogined(false);
       return;
     }
-    setTemuPlatformMalls(getTemuPlatformMallsRes?.data || []);
+    const mallList = getTemuPlatformMallsRes?.data || [];
+    mallList.forEach((mall: any) => {
+      mall.mallId = `${mall.mallId}`;
+    });
+    setTemuPlatformMalls(mallList);
   };
 
   useEffect(() => {
@@ -358,42 +379,48 @@ export default function MallsPage() {
         okText='确定'
         cancelText='取消'
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
-        <Form
-          form={form}
-          layout='vertical'
-          initialValues={{
-            platform: 'taobao',
-            binding_type: 'free',
-          }}
-        >
+        <Form form={form} layout='vertical'>
           <Form.Item
             label='选择店铺'
-            name='selectedMall'
+            name='selectedMalls'
+            help={`当前 TEMU 账户下的所有店铺，已绑定的店铺已过滤，剩余可绑定 ${
+              quotaInfo?.remainingQuota || 0
+            } 个店铺`}
             rules={[{ required: true, message: '请选择店铺' }]}
           >
             <Select
-              placeholder='请选择店铺'
+              mode='multiple'
+              placeholder='请选择店铺（可多选）'
               showSearch
               optionFilterProp='children'
+              maxCount={quotaInfo?.remainingQuota || 0}
               filterOption={(input, option) =>
                 (option?.label ?? '')
                   .toLowerCase()
                   .includes(input.toLowerCase())
               }
-              options={temuPlatformMalls.map((mall) => ({
-                value: mall.mallId,
-                label: `${mall.mallName} (${mall.mallId})`,
-                mall: mall,
-              }))}
-              onChange={(value, option: any) => {
-                const selectedMall = option?.mall;
-                if (selectedMall) {
-                  form.setFieldsValue({
-                    mallId: selectedMall.mallId,
-                    mallName: selectedMall.mallName,
-                  });
+              options={(() => {
+                const filteredMalls = temuPlatformMalls.filter((mall) => {
+                  const isAlreadyBound = malls.some(
+                    (boundMall) => boundMall.mallId === `${mall.mallId}`
+                  );
+                  return !isAlreadyBound;
+                });
+                return filteredMalls.map((mall) => ({
+                  value: mall.mallId,
+                  label: `${mall.mallName} (${mall.mallId})`,
+                  mall: mall,
+                }));
+              })()}
+              onChange={(values: string[]) => {
+                // 检查选择数量是否超过限制
+                if (values.length > (quotaInfo?.remainingQuota || 0)) {
+                  message.warning(
+                    `最多只能选择 ${quotaInfo?.remainingQuota || 0} 个店铺`
+                  );
+                  return;
                 }
               }}
             />

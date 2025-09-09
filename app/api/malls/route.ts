@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 绑定新店铺
+// 绑定新店铺（支持单个或批量绑定）
 export async function POST(request: NextRequest) {
   try {
     // 统一身份验证
@@ -131,11 +131,42 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 检查是否超过配额
-    if (currentBindCount >= totalQuota) {
+    const body = await request.json();
+
+    // 支持单个店铺绑定（向后兼容）和批量绑定
+    let mallsToProcess: Array<{ mallId: number; mallName: string }> = [];
+    if (body.mallId && body.mallName) {
+      // 单个店铺绑定
+      mallsToProcess = [
+        { mallId: Number(body.mallId), mallName: body.mallName },
+      ];
+    } else if (body.malls && Array.isArray(body.malls)) {
+      // 批量店铺绑定
+      mallsToProcess = body.malls.map((mall: any) => ({
+        mallId: Number(mall.mallId),
+        mallName: mall.mallName,
+      }));
+    } else {
+      return NextResponse.json(errorResponse('请提供有效的店铺信息'), {
+        status: 400,
+      });
+    }
+
+    // 验证必填字段
+    for (const mall of mallsToProcess) {
+      if (!mall.mallId || !mall.mallName) {
+        return NextResponse.json(errorResponse('请填写完整的店铺信息'), {
+          status: 400,
+        });
+      }
+    }
+
+    // 检查绑定数量是否超过配额
+    const remainingQuota = totalQuota - currentBindCount;
+    if (mallsToProcess.length > remainingQuota) {
       return NextResponse.json(
         errorResponse(
-          '绑定店铺数量已达配额上限，请升级套餐或通过邀请好友获得更多配额'
+          `绑定店铺数量超过配额限制，当前剩余配额：${remainingQuota}个，请求绑定：${mallsToProcess.length}个`
         ),
         {
           status: 400,
@@ -143,27 +174,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { mallId, mallName } = body;
-
-    // 验证必填字段
-    if (!mallId || !mallName) {
-      return NextResponse.json(errorResponse('请填写完整的店铺信息'), {
-        status: 400,
-      });
-    }
-
     // 检查店铺是否已存在
-    const existingMall = await UserMallBinding.findOne({
+    const mallIds = mallsToProcess.map((mall) => mall.mallId);
+    const existingMalls = await UserMallBinding.findAll({
       where: {
-        mallId,
+        mallId: {
+          [require('sequelize').Op.in]: mallIds,
+        },
       },
     });
 
-    if (existingMall) {
-      return NextResponse.json(errorResponse('该店铺已被绑定'), {
-        status: 400,
-      });
+    if (existingMalls.length > 0) {
+      const existingMallStrs = existingMalls.map(
+        (mall) => `${mall.mallName}（${mall.mallId}）`
+      );
+      return NextResponse.json(
+        errorResponse(`以下店铺已被绑定：${existingMallStrs.join(', ')}`),
+        {
+          status: 400,
+        }
+      );
     }
 
     // 获取用户信息
@@ -172,55 +202,82 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(errorResponse('用户不存在'), { status: 404 });
     }
 
-    // 创建店铺绑定
-    const mallBinding = await UserMallBinding.create({
-      userId: userId,
-      accountType: 'main',
-      mallName: mallName,
-      mallId: mallId,
-    });
-
-    // 检查用户是否有邀请关系，并处理邀请奖励
+    // 获取用户邀请关系（用于后续奖励处理）
     const invitation = await Invitation.findOne({
       where: {
         inviteeId: userId,
       },
     });
 
-    if (invitation) {
-      // 检查invitation_rewards表中是否已存在该mall_id的记录
-      const existingReward = await InvitationReward.findOne({
-        where: {
-          mallId: mallId,
-        },
-      });
+    // 批量创建店铺绑定
+    const mallBindings = [];
+    const operationLogs = [];
+    const invitationRewardsToCreate = [];
 
-      // 如果不存在该mall_id的记录，则为邀请者创建奖励记录
-      if (!existingReward) {
-        await InvitationReward.create({
-          inviterId: invitation.inviterId,
-          inviteeId: userId,
-          mallId: mallId,
-          mallName: mallName,
-          rewardType: 'free_malls',
-          rewardCount: 1,
-          usedCount: 0,
-          status: 'granted',
+    for (const mall of mallsToProcess) {
+      // 创建店铺绑定
+      const mallBinding = await UserMallBinding.create({
+        userId: userId,
+        accountType: 'main',
+        mallName: mall.mallName,
+        mallId: mall.mallId,
+      });
+      mallBindings.push(mallBinding);
+
+      // 处理邀请奖励
+      if (invitation) {
+        // 检查invitation_rewards表中是否已存在该mall_id的记录
+        const existingReward = await InvitationReward.findOne({
+          where: {
+            mallId: mall.mallId,
+          },
         });
+
+        // 如果不存在该mall_id的记录，则为邀请者创建奖励记录
+        if (!existingReward) {
+          invitationRewardsToCreate.push({
+            inviterId: invitation.inviterId,
+            inviteeId: userId,
+            mallId: mall.mallId.toString(),
+            mallName: mall.mallName,
+            rewardType: 'free_malls' as const,
+            rewardCount: 1,
+            usedCount: 0,
+            status: 'granted' as const,
+          });
+        }
       }
+
+      // 准备操作日志
+      operationLogs.push({
+        userId: userId,
+        operationType: 'mall_binding',
+        operationDesc: `绑定店铺：${mall.mallId} (${mall.mallName})`,
+        ipAddress: getClientIP(request),
+        userAgent: request.headers.get('user-agent') || '',
+      });
     }
 
-    // 记录操作日志
-    await UserOperationLog.create({
-      userId: userId,
-      operationType: 'mall_binding',
-      operationDesc: `绑定店铺：${mallId} (${mallName})`,
-      ipAddress: getClientIP(request),
-      userAgent: request.headers.get('user-agent') || '',
-    });
+    // 批量创建邀请奖励
+    if (invitationRewardsToCreate.length > 0) {
+      await InvitationReward.bulkCreate(invitationRewardsToCreate);
+    }
+
+    // 批量记录操作日志
+    await UserOperationLog.bulkCreate(operationLogs);
+
+    const responseMessage =
+      mallBindings.length === 1
+        ? '店铺绑定成功'
+        : `成功绑定 ${mallBindings.length} 个店铺`;
 
     return NextResponse.json(
-      successResponse(formatObjectDates(mallBinding), '店铺绑定成功')
+      successResponse(
+        formatObjectDates(
+          mallBindings.length === 1 ? mallBindings[0] : mallBindings
+        ),
+        responseMessage
+      )
     );
   } catch (error) {
     console.error('店铺绑定失败:', error);
