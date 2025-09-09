@@ -15,12 +15,12 @@ import {
 } from 'antd';
 import {
   UserOutlined,
-  TeamOutlined,
   LogoutOutlined,
   MenuUnfoldOutlined,
   MenuFoldOutlined,
   DashboardOutlined,
   AppstoreOutlined,
+  ShoppingOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { adminAuthAPI } from '../services';
@@ -47,8 +47,6 @@ export default function mainLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  // const [userPackage, setUserPackage] = useState<any>({});
-  // const [packageModalVisible, setPackageModalVisible] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -56,6 +54,7 @@ export default function mainLayout({
   const getSelectedKey = () => {
     if (pathname.startsWith('/admin/home')) return ['home'];
     if (pathname.startsWith('/admin/plugins')) return ['plugins'];
+    if (pathname.startsWith('/admin/packages')) return ['packages'];
     return ['home'];
   };
 
@@ -127,19 +126,6 @@ export default function mainLayout({
   };
 
   const userMenuItems: MenuProps['items'] = [
-    // {
-    //   key: 'profile',
-    //   icon: <UserOutlined />,
-    //   label: '个人资料',
-    // },
-    // {
-    //   key: 'settings',
-    //   icon: <SettingOutlined />,
-    //   label: '设置',
-    // },
-    // {
-    //   type: 'divider',
-    // },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -161,14 +147,9 @@ export default function mainLayout({
       label: '插件管理',
     },
     {
-      key: 'users',
-      icon: <UserOutlined />,
-      label: '用户管理',
-    },
-    {
-      key: 'settings',
-      icon: <TeamOutlined />,
-      label: '系统设置',
+      key: 'packages',
+      icon: <ShoppingOutlined />,
+      label: '套餐管理',
     },
   ];
 
@@ -270,6 +251,8 @@ export default function mainLayout({
                   router.push('/admin/home');
                 } else if (key === 'plugins') {
                   router.push('/admin/plugins');
+                } else if (key === 'packages') {
+                  router.push('/admin/packages');
                 }
               }}
             />

@@ -37,12 +37,15 @@ export async function POST(request: NextRequest) {
         status: 400,
       });
     }
-    
+
     // 验证用户名格式（只能包含字母、数字和下划线）
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return NextResponse.json(errorResponse('用户名只能包含字母、数字和下划线'), {
-        status: 400,
-      });
+      return NextResponse.json(
+        errorResponse('用户名只能包含字母、数字和下划线'),
+        {
+          status: 400,
+        }
+      );
     }
 
     // 验证密码强度
@@ -180,7 +183,7 @@ export async function POST(request: NextRequest) {
     // 查询试用套餐并创建用户套餐绑定关系
     const trialPackage = await MembershipPackage.findOne({
       where: {
-        packageType: 'try',
+        packageType: 'trial',
         isActive: true,
       },
     });
