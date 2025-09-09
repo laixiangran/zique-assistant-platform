@@ -272,3 +272,56 @@ export function formatObjectDates<T>(obj: T): T {
 
   return obj;
 }
+
+// 封装的postMessage通信方法
+export function sendMessageToPlugin(
+  messageType: string,
+  data?: any
+): Promise<any> {
+  return new Promise((resolve) => {
+    const requestId = messageType + '_' + Date.now().toString();
+
+    // 设置超时
+    const timeout = setTimeout(() => {
+      window.removeEventListener('message', messageHandler);
+      resolve({
+        success: false,
+        errorCode: 0,
+        errorMsg: '插件通信超时，请检查是否已安装插件！',
+      });
+    }, 3000);
+
+    // 消息处理器
+    const messageHandler = (event: MessageEvent) => {
+      const {
+        type,
+        source,
+        requestId: currRequestId,
+        data = {},
+      } = event?.data || {};
+      if (
+        source === 'zique-assistant' &&
+        requestId === currRequestId &&
+        type === `${messageType}_RESPONSE`
+      ) {
+        clearTimeout(timeout);
+        window.removeEventListener('message', messageHandler);
+        resolve(data);
+      }
+    };
+
+    // 添加事件监听器
+    window.addEventListener('message', messageHandler);
+
+    // 发送消息
+    window.postMessage(
+      {
+        type: messageType,
+        source: 'zique-platform',
+        requestId,
+        data,
+      },
+      '*'
+    );
+  });
+}

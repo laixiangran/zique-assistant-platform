@@ -70,9 +70,6 @@ export default function LoginPage() {
 
       // 跳转到主页面
       router.push('/main/home');
-    } catch (error) {
-      console.error('登录错误:', error);
-      message.error('网络错误，请稍后重试');
     } finally {
       setLoading(false);
     }

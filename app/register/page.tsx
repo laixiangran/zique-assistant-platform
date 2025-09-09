@@ -171,7 +171,12 @@ function RegisterForm() {
   const handleRegister = async (values: RegisterFormData) => {
     setLoading(true);
     try {
-      const response = await authAPI.register({ ...values, remember: true });
+      const response = await authAPI.register({
+        username: values.username,
+        password: values.password,
+        email: values.email,
+        phone: values.phone
+      });
       const data = response.data;
       
       message.success('注册成功');

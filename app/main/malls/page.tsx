@@ -15,7 +15,9 @@ import {
   Statistic,
   Row,
   Col,
+  Select,
 } from 'antd';
+import { sendMessageToPlugin } from '@/lib/utils';
 import { DeleteOutlined, PlusOutlined, ShopOutlined } from '@ant-design/icons';
 import { mallsAPI } from '../../services';
 
@@ -44,6 +46,9 @@ interface QuotaInfo {
 
 export default function MallsPage() {
   const [malls, setMalls] = useState<Mall[]>([]);
+  const [pluginInstalled, setPluginInstalled] = useState(true);
+  const [temuLogined, setTemuLogined] = useState(true);
+  const [temuPlatformMalls, setTemuPlatformMalls] = useState<Mall[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -100,12 +105,20 @@ export default function MallsPage() {
 
   // 绑定店铺
   const handleAddMall = async (values: any) => {
-    await mallsAPI.createMall(values);
-    message.success('店铺绑定成功');
-    setModalVisible(false);
-    form.resetFields();
-    fetchMalls(pagination.current, pagination.pageSize, searchParams);
-    fetchQuotaInfo(); // 刷新配额信息
+    const selectedOption = temuPlatformMalls.find(
+      (mall) => mall.mallId === values.selectedMall
+    );
+    if (selectedOption) {
+      await mallsAPI.createMall({
+        mallId: selectedOption.mallId,
+        mallName: selectedOption.mallName,
+      });
+      message.success('店铺绑定成功');
+      setModalVisible(false);
+      form.resetFields();
+      fetchMalls(pagination.current, pagination.pageSize, searchParams);
+      fetchQuotaInfo(); // 刷新配额信息
+    }
   };
 
   // 处理模态框确定
@@ -182,9 +195,26 @@ export default function MallsPage() {
     fetchMalls(1, pagination.pageSize, {});
   };
 
+  const getTemutemuPlatformMalls = async () => {
+    const pluginCheckRes = await sendMessageToPlugin('PLUGIN_CHECK');
+    if (!pluginCheckRes.success) {
+      setPluginInstalled(false);
+      return;
+    }
+    const getTemuPlatformMallsRes = await sendMessageToPlugin(
+      'GET_TEMU_PLATFORM_MALLS'
+    );
+    if (!getTemuPlatformMallsRes.success) {
+      setTemuLogined(false);
+      return;
+    }
+    setTemuPlatformMalls(getTemuPlatformMallsRes?.data || []);
+  };
+
   useEffect(() => {
     fetchMalls();
     fetchQuotaInfo();
+    getTemutemuPlatformMalls();
   }, []);
 
   return (
@@ -271,14 +301,35 @@ export default function MallsPage() {
           <Button
             type='primary'
             icon={<PlusOutlined />}
-            onClick={() => setModalVisible(true)}
-            disabled={!quotaInfo?.canBind}
+            onClick={async () => {
+              setModalVisible(true);
+            }}
+            disabled={!quotaInfo?.canBind || temuPlatformMalls.length === 0}
           >
             绑定店铺
           </Button>
-          {!quotaInfo?.canBind && (
+          {quotaInfo && !quotaInfo?.canBind && (
             <span style={{ marginLeft: 8, color: '#ff4d4f', fontSize: '12px' }}>
-              已达配额上限
+              剩余可绑定店铺数为0，无法绑定店铺！
+            </span>
+          )}
+          {!pluginInstalled && (
+            <span style={{ marginLeft: 8, color: '#ff4d4f', fontSize: '12px' }}>
+              检测到未安装紫雀插件，无法绑定店铺！
+              <a href='/zique-assistant_0.0.1.zip' target='_blank'>
+                下载紫雀插件
+              </a>
+            </span>
+          )}
+          {!temuLogined && (
+            <span style={{ marginLeft: 8, color: '#ff4d4f', fontSize: '12px' }}>
+              检测到未登录 TEMU 平台，无法绑定店铺！
+              <a
+                href='https://agentseller.temu.com/main/authentication'
+                target='_blank'
+              >
+                登录 TEMU 平台
+              </a>
             </span>
           )}
         </div>
@@ -318,18 +369,34 @@ export default function MallsPage() {
           }}
         >
           <Form.Item
-            label='店铺ID'
-            name='mallId'
-            rules={[{ required: true, message: '请输入店铺ID' }]}
+            label='选择店铺'
+            name='selectedMall'
+            rules={[{ required: true, message: '请选择店铺' }]}
           >
-            <Input placeholder='请输入店铺ID' />
-          </Form.Item>
-          <Form.Item
-            label='店铺名称'
-            name='mallName'
-            rules={[{ required: true, message: '请输入店铺名称' }]}
-          >
-            <Input placeholder='请输入店铺名称' />
+            <Select
+              placeholder='请选择店铺'
+              showSearch
+              optionFilterProp='children'
+              filterOption={(input, option) =>
+                (option?.label ?? '')
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={temuPlatformMalls.map((mall) => ({
+                value: mall.mallId,
+                label: `${mall.mallName} (${mall.mallId})`,
+                mall: mall,
+              }))}
+              onChange={(value, option: any) => {
+                const selectedMall = option?.mall;
+                if (selectedMall) {
+                  form.setFieldsValue({
+                    mallId: selectedMall.mallId,
+                    mallName: selectedMall.mallName,
+                  });
+                }
+              }}
+            />
           </Form.Item>
         </Form>
       </Modal>
