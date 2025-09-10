@@ -336,9 +336,9 @@ export default function MallsPage() {
           )}
           {!pluginInstalled && (
             <span style={{ marginLeft: 8, color: '#ff4d4f', fontSize: '12px' }}>
-              检测到未安装紫雀插件，无法绑定店铺！
+              检测到未安装紫鹊插件，无法绑定店铺！
               <a href='/zique-assistant_0.0.1.zip' target='_blank'>
-                下载紫雀插件
+                下载紫鹊插件
               </a>
             </span>
           )}

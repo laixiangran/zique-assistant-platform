@@ -1,7 +1,7 @@
 {
   "name": "zique-assistant-platform",
   "version": "0.0.1",
-  "description": "紫雀跨境运营平台",
+  "description": "紫鹊跨境运营平台",
   "private": true,
   "scripts": {
     "dev": "dotenv -e .env.development -- next dev",

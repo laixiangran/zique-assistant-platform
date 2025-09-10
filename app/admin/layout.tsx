@@ -201,7 +201,7 @@ export default function mainLayout({
                 margin: 0,
               }}
             >
-              紫雀管理后台
+              紫鹊管理后台
             </h1>
           </div>
 

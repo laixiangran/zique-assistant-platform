@@ -70,7 +70,7 @@ export default function LoginPage() {
     <div className='login-wrapper'>
       <Card>
         <div>
-          <h1>紫雀管理后台</h1>
+          <h1>紫鹊管理后台</h1>
         </div>
 
         <div>
