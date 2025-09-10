@@ -180,12 +180,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 查询试用套餐并创建用户套餐绑定关系
+    // 查询试用套餐并创建用户套餐绑定关系（获取最新的启用试用套餐）
     const trialPackage = await MembershipPackage.findOne({
       where: {
         packageType: 'trial',
         isActive: true,
       },
+      order: [['createdTime', 'DESC']], // 按创建时间降序排列，获取最新的试用套餐
     });
 
     if (trialPackage) {
