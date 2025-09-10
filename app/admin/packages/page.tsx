@@ -38,6 +38,9 @@ interface MembershipPackage {
   isActive?: boolean;
   createdTime: string;
   updatedTime: string;
+  userBindingCount?: number;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 interface PackageFormData {
@@ -64,6 +67,7 @@ const AdminPackagesPage: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPackage, setEditingPackage] =
     useState<MembershipPackage | null>(null);
+
   const [form] = Form.useForm();
 
   // 获取套餐列表
@@ -172,6 +176,35 @@ const AdminPackagesPage: React.FC = () => {
     } catch (error) {
       console.error('提交失败:', error);
       message.error('提交失败');
+    }
+  };
+
+  // 修改套餐状态
+  const handleStatusChange = async (packageData: MembershipPackage) => {
+    try {
+      const token =
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token');
+
+      const response = await fetch(`/api/admin/packages?id=${packageData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isActive: !packageData.isActive }),
+      });
+
+      if (response.ok) {
+        message.success(`套餐${!packageData.isActive ? '启用' : '禁用'}成功`);
+        fetchPackages();
+      } else {
+        const errorData = await response.json();
+        message.error(errorData.message || '操作失败');
+      }
+    } catch (error) {
+      console.error('状态修改失败:', error);
+      message.error('状态修改失败');
     }
   };
 
@@ -303,6 +336,14 @@ const AdminPackagesPage: React.FC = () => {
       ),
     },
     {
+      title: '绑定用户数',
+      dataIndex: 'userBindingCount',
+      key: 'userBindingCount',
+      render: (count: number) => (
+        <Tag color={count > 0 ? 'blue' : 'default'}>{count || 0}</Tag>
+      ),
+    },
+    {
       title: '创建时间',
       dataIndex: 'createdTime',
       key: 'createdTime',
@@ -313,23 +354,37 @@ const AdminPackagesPage: React.FC = () => {
       key: 'action',
       render: (_, record: MembershipPackage) => (
         <Space>
-          <Button
-            type='link'
-            icon={<EditOutlined />}
-            onClick={() => openModal(record)}
-          >
-            编辑
-          </Button>
+          {record.canEdit !== false && (
+            <Button
+              type='link'
+              icon={<EditOutlined />}
+              onClick={() => openModal(record)}
+            >
+              编辑
+            </Button>
+          )}
           <Popconfirm
-            title='确定要删除这个套餐吗？'
-            onConfirm={() => handleDelete(record.id)}
+            title={`确定要${record.isActive ? '禁用' : '启用'}这个套餐吗？`}
+            onConfirm={() => handleStatusChange(record)}
             okText='确定'
             cancelText='取消'
           >
-            <Button type='link' danger icon={<DeleteOutlined />}>
-              删除
+            <Button type='link' icon={<EditOutlined />}>
+              {record.isActive ? '禁用' : '启用'}
             </Button>
           </Popconfirm>
+          {record.canDelete !== false && (
+            <Popconfirm
+              title='确定要删除这个套餐吗？'
+              onConfirm={() => handleDelete(record.id)}
+              okText='确定'
+              cancelText='取消'
+            >
+              <Button type='link' danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -389,103 +444,105 @@ const AdminPackagesPage: React.FC = () => {
             isActive: true,
           }}
         >
-          <Form.Item
-            name='packageName'
-            label='套餐名称'
-            rules={[{ required: true, message: '请输入套餐名称' }]}
-          >
-            <Input placeholder='请输入套餐名称' />
-          </Form.Item>
+          <>
+            <Form.Item
+              name='packageName'
+              label='套餐名称'
+              rules={[{ required: true, message: '请输入套餐名称' }]}
+            >
+              <Input placeholder='请输入套餐名称' />
+            </Form.Item>
 
-          <Form.Item name='packageDesc' label='套餐描述'>
-            <TextArea rows={3} placeholder='请输入套餐描述' />
-          </Form.Item>
+            <Form.Item name='packageDesc' label='套餐描述'>
+              <TextArea rows={3} placeholder='请输入套餐描述' />
+            </Form.Item>
 
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='packageType'
-                label='套餐类型'
-                rules={[{ required: true, message: '请选择套餐类型' }]}
-                extra='注意：试用套餐只能存在一个'
-              >
-                <Select>
-                  <Option value='trial'>试用版</Option>
-                  <Option value='official'>正式版</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='originalPrice'
-                label='原价'
-                rules={[{ required: true, message: '请输入原价' }]}
-              >
-                <InputNumber
-                  min={0}
-                  precision={2}
-                  style={{ width: '100%' }}
-                  placeholder='请输入原价'
-                  addonAfter='元'
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name='packageType'
+                  label='套餐类型'
+                  rules={[{ required: true, message: '请选择套餐类型' }]}
+                  extra='新用户注册时会自动绑定最新启用的试用套餐'
+                >
+                  <Select>
+                    <Option value='trial'>试用版</Option>
+                    <Option value='official'>正式版</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name='originalPrice'
+                  label='原价'
+                  rules={[{ required: true, message: '请输入原价' }]}
+                >
+                  <InputNumber
+                    min={0}
+                    precision={2}
+                    style={{ width: '100%' }}
+                    placeholder='请输入原价'
+                    addonAfter='元'
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='durationMonths'
-                label='时长(月)'
-                rules={[{ required: true, message: '请输入时长' }]}
-              >
-                <InputNumber
-                  min={1}
-                  style={{ width: '100%' }}
-                  placeholder='请输入时长'
-                  addonAfter='月'
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='maxBindMall'
-                label='最大绑定店铺数'
-                rules={[{ required: true, message: '请输入最大绑定店铺数' }]}
-              >
-                <InputNumber
-                  min={1}
-                  style={{ width: '100%' }}
-                  placeholder='请输入最大绑定店铺数'
-                  addonAfter='个'
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name='durationMonths'
+                  label='时长(月)'
+                  rules={[{ required: true, message: '请输入时长' }]}
+                >
+                  <InputNumber
+                    min={1}
+                    style={{ width: '100%' }}
+                    placeholder='请输入时长'
+                    addonAfter='月'
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name='maxBindMall'
+                  label='最大绑定店铺数'
+                  rules={[{ required: true, message: '请输入最大绑定店铺数' }]}
+                >
+                  <InputNumber
+                    min={1}
+                    style={{ width: '100%' }}
+                    placeholder='请输入最大绑定店铺数'
+                    addonAfter='个'
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12}>
-              <Form.Item name='discountPercent' label='折扣百分比'>
-                <InputNumber
-                  min={0}
-                  max={100}
-                  precision={2}
-                  style={{ width: '100%' }}
-                  placeholder='请输入折扣百分比'
-                  addonAfter='%'
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name='isActive'
-                label='是否启用'
-                valuePropName='checked'
-              >
-                <Switch checkedChildren='启用' unCheckedChildren='禁用' />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item name='discountPercent' label='折扣百分比'>
+                  <InputNumber
+                    min={0}
+                    max={100}
+                    precision={2}
+                    style={{ width: '100%' }}
+                    placeholder='请输入折扣百分比'
+                    addonAfter='%'
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name='isActive'
+                  label='是否启用'
+                  valuePropName='checked'
+                >
+                  <Switch checkedChildren='启用' unCheckedChildren='禁用' />
+                </Form.Item>
+              </Col>
+            </Row>
+          </>
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>

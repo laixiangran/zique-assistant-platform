@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MembershipPackage } from '@/models';
+import { MembershipPackage, UserPackage } from '@/models';
 import {
   authenticateRequest,
   successResponse,
@@ -43,9 +43,23 @@ export async function GET(request: NextRequest) {
       order: [['createdTime', 'DESC']],
     });
 
-    // 处理数据
-    const processedPackages = rows.map((pkg: any) => 
-      formatObjectDates(pkg.toJSON())
+    // 处理数据并查询用户绑定信息
+    const processedPackages = await Promise.all(
+      rows.map(async (pkg: any) => {
+        // 查询该套餐的用户绑定数量
+        const userBindingCount = await UserPackage.count({
+          where: {
+            packageId: pkg.id,
+          },
+        });
+        
+        return {
+          ...formatObjectDates(pkg.toJSON()),
+          userBindingCount, // 用户绑定数量
+          canEdit: userBindingCount === 0, // 没有用户绑定时可以编辑
+          canDelete: userBindingCount === 0, // 没有用户绑定时可以删除
+        };
+      })
     );
 
     return NextResponse.json(
@@ -115,17 +129,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 验证试用套餐唯一性
-    if (packageType === 'trial') {
-      const existingTrialPackage = await MembershipPackage.findOne({
-        where: { packageType: 'trial' }
-      });
-      if (existingTrialPackage) {
-        return NextResponse.json(errorResponse('试用套餐只能存在一个，请先删除现有试用套餐'), {
-          status: 400,
-        });
-      }
-    }
+
 
     // 创建套餐
     const membershipPackage = await MembershipPackage.create({
@@ -199,29 +203,113 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // 验证必填字段
+    // 检查套餐是否有用户绑定
+    const userBindingCount = await UserPackage.count({
+      where: {
+        packageId: id,
+      },
+    });
+
+    // 如果有用户绑定，只允许修改状态
+    if (userBindingCount > 0) {
+      // 只允许修改 isActive 状态
+      if (isActive !== undefined) {
+        // 如果要禁用试用套餐，检查是否为唯一启用的试用套餐
+        if (!isActive && membershipPackage.packageType === 'trial' && membershipPackage.isActive) {
+          const activeTrialCount = await MembershipPackage.count({
+            where: {
+              packageType: 'trial',
+              isActive: true,
+            },
+          });
+          
+          if (activeTrialCount <= 1) {
+            return NextResponse.json(errorResponse('当前只有一个启用的试用套餐，不能禁用'), {
+              status: 400,
+            });
+          }
+        }
+        
+        await membershipPackage.update({
+          isActive,
+          updatedTime: new Date(),
+        });
+        
+        return NextResponse.json(
+          successResponse(
+            formatObjectDates(membershipPackage.toJSON()),
+            '套餐状态更新成功'
+          )
+        );
+      } else {
+        return NextResponse.json(errorResponse('该套餐已有用户绑定，只能修改启用状态'), {
+          status: 400,
+        });
+      }
+    }
+
+    // 检查是否只是状态修改
+    const isStatusOnlyUpdate = isActive !== undefined && 
+      !packageName && !packageDesc && !packageType && 
+      originalPrice === undefined && !durationMonths && 
+      !maxBindMall && discountPercent === undefined && 
+      !discountStartTime && !discountEndTime;
+
+    if (isStatusOnlyUpdate) {
+      // 只修改状态
+      // 如果要禁用试用套餐，检查是否为唯一启用的试用套餐
+      if (isActive === false && membershipPackage.packageType === 'trial' && membershipPackage.isActive) {
+        const activeTrialCount = await MembershipPackage.count({
+          where: {
+            packageType: 'trial',
+            isActive: true,
+          },
+        });
+        
+        if (activeTrialCount <= 1) {
+          return NextResponse.json(errorResponse('当前只有一个启用的试用套餐，不能禁用'), {
+            status: 400,
+          });
+        }
+      }
+      
+      await membershipPackage.update({
+        isActive,
+        updatedTime: new Date(),
+      });
+      
+      return NextResponse.json(
+        successResponse(
+          formatObjectDates(membershipPackage.toJSON()),
+          '套餐状态更新成功'
+        )
+      );
+    }
+
+    // 验证必填字段（完整编辑模式）
     if (!packageName || originalPrice === undefined || !durationMonths || !maxBindMall) {
       return NextResponse.json(errorResponse('请填写完整的套餐信息'), {
         status: 400,
       });
     }
 
-    // 验证试用套餐唯一性
-    if (packageType === 'trial') {
-      const existingTrialPackage = await MembershipPackage.findOne({
-        where: { 
+    // 如果要禁用试用套餐，检查是否为唯一启用的试用套餐
+    if (isActive === false && membershipPackage.packageType === 'trial' && membershipPackage.isActive) {
+      const activeTrialCount = await MembershipPackage.count({
+        where: {
           packageType: 'trial',
-          id: { [require('sequelize').Op.ne]: id } // 排除当前套餐
-        }
+          isActive: true,
+        },
       });
-      if (existingTrialPackage) {
-        return NextResponse.json(errorResponse('试用套餐只能存在一个，请先删除现有试用套餐'), {
+      
+      if (activeTrialCount <= 1) {
+        return NextResponse.json(errorResponse('当前只有一个启用的试用套餐，不能禁用'), {
           status: 400,
         });
       }
     }
 
-    // 更新套餐
+    // 更新套餐（完整编辑）
     await membershipPackage.update({
       packageName,
       packageDesc,
@@ -275,6 +363,19 @@ export async function DELETE(request: NextRequest) {
     if (!membershipPackage) {
       return NextResponse.json(errorResponse('套餐不存在'), {
         status: 404,
+      });
+    }
+
+    // 检查套餐是否有用户绑定
+    const userBindingCount = await UserPackage.count({
+      where: {
+        packageId: id,
+      },
+    });
+
+    if (userBindingCount > 0) {
+      return NextResponse.json(errorResponse('该套餐已有用户绑定，不能删除'), {
+        status: 400,
       });
     }
 
