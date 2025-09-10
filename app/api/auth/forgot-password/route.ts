@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
             
             <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
               <h2 style="color: #333; margin-top: 0;">重置您的密码</h2>
-              <p style="color: #666; line-height: 1.6;">您好，</p>
+              <p style="color: #666; line-height: 1.6;">您好，<strong>${user.username}</strong>！</p>
               <p style="color: #666; line-height: 1.6;">我们收到了重置您账户密码的请求。请点击下面的按钮来重置您的密码：</p>
               
               <div style="text-align: center; margin: 30px 0;">
