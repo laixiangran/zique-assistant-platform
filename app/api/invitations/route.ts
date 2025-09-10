@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Invitation, User } from '@/models';
+import { Invitation, User, UserMallBinding } from '@/models';
 import {
   authenticateMainAccount,
   successResponse,
@@ -46,6 +46,14 @@ export async function GET(request: NextRequest) {
           model: User,
           as: 'invitee',
           attributes: ['username'],
+          include: [
+            {
+              model: UserMallBinding,
+              as: 'shopBindings',
+              attributes: ['id', 'mallName'],
+              required: false, // 左连接，即使没有绑定店铺也要显示用户
+            },
+          ],
         },
       ],
       limit: pageSize,
@@ -77,6 +85,14 @@ export async function GET(request: NextRequest) {
               invitationData.invitee.username = maskUsername(
                 invitationData.invitee.username
               );
+            }
+            // 添加店铺绑定状态信息
+            if (invitationData.invitee) {
+              const shopBindings = invitationData.invitee.shopBindings || [];
+              invitationData.invitee.hasShopBinding = shopBindings.length > 0;
+              invitationData.invitee.shopCount = shopBindings.length;
+              // 移除详细的店铺绑定信息，只保留统计数据
+              delete invitationData.invitee.shopBindings;
             }
             return invitationData;
           }),

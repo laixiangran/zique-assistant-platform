@@ -18,6 +18,8 @@ import {
   CopyOutlined,
   ShopOutlined,
   LinkOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import { invitationsAPI } from '../../services';
 
@@ -101,6 +103,31 @@ export default function InvitationsPage() {
       dataIndex: 'invitee',
       key: 'invitee',
       render: (invitee: any) => invitee?.username || '-',
+    },
+    {
+      title: '店铺绑定状态',
+      dataIndex: 'invitee',
+      key: 'shopBinding',
+      render: (invitee: any) => {
+        if (!invitee) return '-';
+        const hasBinding = invitee.hasShopBinding;
+        
+        return (
+          <span style={{ color: hasBinding ? '#52c41a' : '#ff4d4f' }}>
+            {hasBinding ? (
+              <>
+                <CheckCircleOutlined style={{ marginRight: 4 }} />
+                已绑定
+              </>
+            ) : (
+              <>
+                <CloseCircleOutlined style={{ marginRight: 4 }} />
+                未绑定
+              </>
+            )}
+          </span>
+        );
+      },
     },
     {
       title: '邀请时间',
