@@ -111,6 +111,7 @@ export const authAPI = {
     password: string;
     email: string;
     phone: string;
+    invitationCode?: string;
   }) => request.post('/auth/register', userData),
 
   // 检查可用性

@@ -78,17 +78,17 @@ function RegisterForm() {
       }));
 
       try {
-      const response = await authAPI.checkAvailability({ type, value });
-      const data = response.data;
-      
-      setValidationStatus(prev => ({
-        ...prev,
-        [type]: {
-          status: data.available ? 'success' : 'error',
-          message: data.message,
-          checking: false
-        }
-      }));
+        const response = await authAPI.checkAvailability({ type, value });
+        const data = response.data;
+
+        setValidationStatus((prev) => ({
+          ...prev,
+          [type]: {
+            status: data.available ? 'success' : 'error',
+            message: data.message,
+            checking: false,
+          },
+        }));
       } catch (error: any) {
         setValidationStatus((prev) => ({
           ...prev,
@@ -175,10 +175,11 @@ function RegisterForm() {
         username: values.username,
         password: values.password,
         email: values.email,
-        phone: values.phone
+        phone: values.phone,
+        invitationCode: values.invitationCode,
       });
       const data = response.data;
-      
+
       message.success('注册成功');
       // 注册后默认记住用户信息（类似大多数网站的注册后自动登录）
       localStorage.setItem('user', JSON.stringify(data.user));
