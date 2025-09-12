@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { MallState } from '../../../../models';
-import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
+import { Op } from 'sequelize';
+import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
+import { createQueryOptimizer, FIELD_SELECTIONS } from '../../../../lib/query-optimizer';
 
 export async function GET(request) {
   try {
@@ -36,33 +38,39 @@ export async function GET(request) {
       }
     }
 
-    // 计算偏移量
-    const offset = (pageIndex - 1) * pageSize;
-
-    // 构建排序条件
-    const orderCondition = [[sortField, sortOrder.toUpperCase()]];
-
-    const results = await MallState.findAndCountAll({
-      where: whereCondition,
-      limit: pageSize,
-      offset: offset,
-      order: orderCondition
+    // 创建查询优化器
+    const queryOptimizer = createQueryOptimizer({
+      enableCache: true,
+      cacheTimeout: 300,
+      selectFields: FIELD_SELECTIONS.MALL_STATE
     });
 
+    // 执行优化查询
+    const results = await queryOptimizer.optimizedQuery(
+      MallState,
+      whereCondition,
+      {
+        pageIndex,
+        pageSize,
+        sortField,
+        sortOrder: sortOrder.toUpperCase()
+      },
+      'mall_state'
+    );
+
     // 转换时间格式
-    const formattedResults = results.map((item) => ({
-      ...item,
-      created_time: dayjs(item.created_time).format('YYYY-MM-DD HH:mm:ss'),
-      updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss'),
+    const formattedResults = results.data.map((item) => ({
+      ...item.dataValues,
+      updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss')
     }));
 
     return NextResponse.json({
       success: true,
       data: formattedResults,
-      total: results.count,
-      pageIndex,
-      pageSize,
-      totalPages: Math.ceil(results.count / pageSize)
+      total: results.total,
+      pageIndex: results.pageIndex,
+      pageSize: results.pageSize,
+      totalPages: results.totalPages
     });
   } catch (error) {
     return NextResponse.json(

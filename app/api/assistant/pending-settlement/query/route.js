@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { PendingSettlementDetail, CostSettlement } from '../../../../models';
 import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
+import { createQueryOptimizer, FIELD_SELECTIONS } from '../../../../lib/query-optimizer';
 
 export async function GET(request) {
   try {
@@ -48,20 +49,27 @@ export async function GET(request) {
       }
     }
 
-    // 构建排序条件
-    let orderCondition = [['updated_time', 'DESC']];
-    if (sortField && sortOrder) {
-      orderCondition = [[sortField, sortOrder.toUpperCase()]];
-    }
-
-    // 查询数据和总数
-    const { count: total, rows: results } = await PendingSettlementDetail.findAndCountAll({
-      where: whereCondition,
-      order: orderCondition,
-      limit: pageSize,
-      offset: offset,
-      raw: true
+    // 创建查询优化器
+    const queryOptimizer = createQueryOptimizer({
+      enableCache: true,
+      cacheTimeout: 300,
+      selectFields: FIELD_SELECTIONS.PENDING_SETTLEMENT
     });
+
+    // 执行优化查询
+    const queryResult = await queryOptimizer.optimizedQuery(
+      PendingSettlementDetail,
+      whereCondition,
+      {
+        pageIndex,
+        pageSize,
+        sortField: sortField || 'updated_time',
+        sortOrder: (sortOrder || 'DESC').toUpperCase()
+      },
+      'pending_settlement'
+    );
+    
+    const { total, data: results } = queryResult;
 
     // 获取所有唯一的sku_id
     const skuIds = [...new Set(results.map((item) => item.sku_id))];
@@ -108,9 +116,10 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: formattedResults || [],
-      pageIndex,
-      pageSize,
-      total,
+      total: queryResult.total,
+      pageIndex: queryResult.pageIndex,
+      pageSize: queryResult.pageSize,
+      totalPages: queryResult.totalPages
     });
   } catch (error) {
     return NextResponse.json(

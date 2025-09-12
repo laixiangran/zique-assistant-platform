@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { ArrivalDataDetail, CostSettlement } from '../../../../models';
 import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
+import { createQueryOptimizer, FIELD_SELECTIONS } from '../../../../lib/query-optimizer';
 
 export async function GET(request) {
   try {
@@ -27,11 +28,6 @@ export async function GET(request) {
     // 添加排序参数
     const sortField = searchParams.get('sortField');
     const sortOrder = searchParams.get('sortOrder');
-
-    // 计算偏移量
-    const offset = (pageIndex - 1) * pageSize;
-
-    // 构建Sequelize查询条件将在下面统一处理
 
     // 构建查询条件（包含权限控制）
     const whereCondition = await buildMallWhereCondition(
@@ -58,20 +54,27 @@ export async function GET(request) {
       };
     }
 
-    // 构建排序条件
-    let orderCondition = [['accounting_time', 'DESC']];
-    if (sortField && sortOrder) {
-      orderCondition = [[sortField, sortOrder.toUpperCase()]];
-    }
-
-    // 查询数据和总数
-    const { count: total, rows: results } = await ArrivalDataDetail.findAndCountAll({
-      where: whereCondition,
-      order: orderCondition,
-      limit: pageSize,
-      offset: offset,
-      raw: true
+    // 创建查询优化器
+    const queryOptimizer = createQueryOptimizer({
+      enableCache: true,
+      cacheTimeout: 300,
+      selectFields: FIELD_SELECTIONS.ARRIVAL_DATA
     });
+
+    // 执行优化查询
+    const queryResult = await queryOptimizer.optimizedQuery(
+      ArrivalDataDetail,
+      whereCondition,
+      {
+        pageIndex,
+        pageSize,
+        sortField: sortField || 'accounting_time',
+        sortOrder: (sortOrder || 'DESC').toUpperCase()
+      },
+      'arrival_data'
+    );
+    
+    const { total, data: results } = queryResult;
 
     // 获取所有唯一的sku_id
     const skuIds = [...new Set(results.map((item) => item.sku_id))];
@@ -117,9 +120,10 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: formattedResults || [],
-      pageIndex,
-      pageSize,
-      total,
+      total: queryResult.total,
+      pageIndex: queryResult.pageIndex,
+      pageSize: queryResult.pageSize,
+      totalPages: queryResult.totalPages
     });
   } catch (error) {
     return NextResponse.json(

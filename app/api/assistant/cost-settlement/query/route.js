@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { CostSettlement } from '../../../../models';
 import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
+import { createQueryOptimizer, FIELD_SELECTIONS } from '../../../../lib/query-optimizer';
 
 export async function GET(request) {
   try {
@@ -24,9 +25,6 @@ export async function GET(request) {
     // 添加排序参数
     const sortField = searchParams.get('sortField');
     const sortOrder = searchParams.get('sortOrder');
-
-    // 计算偏移量
-    const offset = (pageIndex - 1) * pageSize;
 
     // 构建查询条件（包含权限控制）
     const whereCondition = await buildMallWhereCondition(
@@ -57,20 +55,27 @@ export async function GET(request) {
       };
     }
 
-    // 构建排序条件
-    let orderCondition = [['updated_time', 'DESC']];
-    if (sortField && sortOrder) {
-      orderCondition = [[sortField, sortOrder.toUpperCase()]];
-    }
-
-    // 查询数据和总数
-    const { count: total, rows: results } = await CostSettlement.findAndCountAll({
-      where: whereCondition,
-      order: orderCondition,
-      limit: pageSize,
-      offset: offset,
-      raw: true
+    // 创建查询优化器
+    const queryOptimizer = createQueryOptimizer({
+      enableCache: true,
+      cacheTimeout: 300,
+      selectFields: FIELD_SELECTIONS.COST_SETTLEMENT
     });
+
+    // 执行优化查询
+    const queryResult = await queryOptimizer.optimizedQuery(
+      CostSettlement,
+      whereCondition,
+      {
+        pageIndex,
+        pageSize,
+        sortField: sortField || 'updated_time',
+        sortOrder: (sortOrder || 'DESC').toUpperCase()
+      },
+      'cost_settlement'
+    );
+    
+    const { total, data: results } = queryResult;
 
     // 转换时间格式
     const formattedResults = results.map((item) => ({
@@ -88,9 +93,10 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: formattedResults || [],
-      pageIndex,
-      pageSize,
-      total,
+      total: queryResult.total,
+      pageIndex: queryResult.pageIndex,
+      pageSize: queryResult.pageSize,
+      totalPages: queryResult.totalPages
     });
   } catch (error) {
     return NextResponse.json(
