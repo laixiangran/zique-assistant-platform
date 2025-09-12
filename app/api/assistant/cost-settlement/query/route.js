@@ -2,9 +2,16 @@ import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { CostSettlement } from '../../../../models';
+import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
 
 export async function GET(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     // 解析查询参数
     const { searchParams } = new URL(request.url);
     const pageIndex = parseInt(searchParams.get('pageIndex')) || 1;
@@ -21,20 +28,16 @@ export async function GET(request) {
     // 计算偏移量
     const offset = (pageIndex - 1) * pageSize;
 
-    // 构建Sequelize查询条件
-    const whereCondition = {};
+    // 构建Sequelize查询条件（包含权限控制）
+    const whereCondition = buildMallWhereCondition(
+      authResult.allowedMallIds,
+      mallId,
+      mallName
+    );
     
     if (skuId) {
       const skuIdList = skuId.split(',').map((id) => id.trim());
       whereCondition.sku_id = { [Op.in]: skuIdList };
-    }
-    
-    if (mallId) {
-      whereCondition.mall_id = mallId;
-    }
-    
-    if (mallName) {
-      whereCondition.mall_name = { [Op.like]: `%${mallName}%` };
     }
     
     // 添加成本状态查询条件

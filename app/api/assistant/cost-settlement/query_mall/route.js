@@ -2,12 +2,30 @@ import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { CostSettlement } from '../../../../models';
 import { formatVolume, formatAmount, formatRate } from '../../../../lib/utils';
+import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
 
 export async function GET(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const mall_id = searchParams.get('mall_id');
     let data = {};
+
+    // 验证店铺访问权限
+    if (mall_id) {
+      const mallAccess = await validateMallAccess(authResult.user, mall_id);
+      if (!mallAccess.valid) {
+        return NextResponse.json(
+          { success: false, error: mallAccess.error },
+          { status: 403 }
+        );
+      }
+    }
 
     // 根据 mall_id 查询 cost_settlement 记录
     if (mall_id) {

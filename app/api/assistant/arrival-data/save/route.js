@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { ArrivalDataDetail } from '../../../../models';
+import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
 
 export async function POST(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const { data: datas } = body;
     for (const data of datas) {
@@ -22,6 +29,12 @@ export async function POST(request) {
         currency,
         updatedTime = dayjs().format('YYYY-MM-DD HH:mm:ss'),
       } = data;
+
+      // 验证店铺权限
+      const mallAccessResult = await validateMallAccess(authResult.user, mallId);
+      if (!mallAccessResult.success) {
+        return mallAccessResult.response;
+      }
 
       const currentTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
       

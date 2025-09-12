@@ -3,9 +3,16 @@ import dayjs from 'dayjs';
 import { PromotionSalesDetail, CostSettlement } from '../../../../models';
 import { USDToCNY } from '../../../../../lib/utils';
 import { Op } from 'sequelize';
+import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
 
 export async function POST(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const { mallId, data: datas = [] } = body;
 
@@ -14,6 +21,12 @@ export async function POST(request) {
         success: false,
         data: '请传入参数 mallId',
       });
+    }
+
+    // 验证店铺权限
+    const mallAccessResult = await validateMallAccess(authResult.user, mallId);
+    if (!mallAccessResult.success) {
+      return mallAccessResult.response;
     }
 
     // 获取今天的日期（YYYY-MM-DD格式）

@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { MallState } from '../../../../models';
+import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
 
 export async function GET(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const { searchParams } = new URL(request.url);
     const mall_id = parseInt(searchParams.get('mall_id')) || 1;
+
+    // 验证店铺权限
+    const mallAccessResult = await validateMallAccess(authResult.user, mall_id);
+    if (!mallAccessResult.success) {
+      return mallAccessResult.response;
+    }
 
     const results = await MallState.findAll({
       where: {

@@ -2,13 +2,21 @@ import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { ArrivalDataDetail, CostSettlement } from '../../../../models';
+import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
 
 export async function GET(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     // 解析查询参数
     const { searchParams } = new URL(request.url);
     const pageIndex = parseInt(searchParams.get('pageIndex')) || 1;
     const pageSize = parseInt(searchParams.get('pageSize')) || 10;
+    const mallId = searchParams.get('mall_id'); // 店铺ID查询参数
     const mallName = searchParams.get('mall_name'); // 新增店铺名称查询参数
     const regionName = searchParams.get('region_name'); // 新增地区查询参数
     const skuId = searchParams.get('sku_id'); // 新增SKU ID查询参数
@@ -25,12 +33,8 @@ export async function GET(request) {
 
     // 构建Sequelize查询条件将在下面统一处理
 
-    // 构建Sequelize查询条件
-    const whereCondition = {};
-    
-    if (mallName) {
-      whereCondition.mall_name = { [Op.like]: `%${mallName}%` };
-    }
+    // 构建Sequelize查询条件（包含权限控制）
+    const whereCondition = await buildMallWhereCondition(authResult, mallId, mallName);
     
     if (regionName) {
       whereCondition.region_name = { [Op.like]: `%${regionName}%` };

@@ -1,15 +1,26 @@
 import { NextResponse } from 'next/server';
 import { CostSettlement } from '../../../../models';
+import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
+import { Op } from 'sequelize';
 
 export async function POST(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const { sku_id, product_name, cost_price } = body;
 
-    // 先查询当前记录的数据用于计算
+    // 先查询当前记录的数据用于计算（包含权限验证）
     const currentData = await CostSettlement.findAll({
       where: {
-        sku_id: sku_id
+        sku_id: sku_id,
+        mall_id: {
+          [Op.in]: authResult.allowedMallIds
+        }
       },
       attributes: [
         'pending_sales_amount', 'pending_sales_volume', 'pending_average_price',

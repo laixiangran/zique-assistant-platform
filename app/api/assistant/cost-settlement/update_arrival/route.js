@@ -2,10 +2,17 @@ import { NextResponse } from 'next/server';
 import { Op } from 'sequelize';
 import { ArrivalDataDetail, CostSettlement } from '../../../../models';
 import { USDToCNY } from '../../../../lib/utils';
+import { authenticateUser } from '../../../../lib/user-auth';
 import dayjs from 'dayjs';
 
 export async function POST(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     // 从表 arrival_data_details 同步 accounting_time 为最近30天的数据到表 cost_settlement
     const startDate = dayjs().subtract(30, 'day').format('YYYY-MM-DD');
     const endDate = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
@@ -14,6 +21,9 @@ export async function POST(request) {
       where: {
         accounting_time: {
           [Op.between]: [`${startDate} 00:00:00`, `${endDate} 23:59:59`]
+        },
+        mall_id: {
+          [Op.in]: authResult.allowedMallIds
         }
       },
       attributes: [

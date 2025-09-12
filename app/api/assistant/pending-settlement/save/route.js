@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { PendingSettlementDetail } from '../../../../models';
+import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
 
 export async function POST(request) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response;
+    }
+
     const body = await request.json();
     const { mallId, regionCode, data: datas } = body;
+
+    // 验证店铺权限
+    const mallAccessResult = await validateMallAccess(authResult.user, mallId);
+    if (!mallAccessResult.success) {
+      return mallAccessResult.response;
+    }
 
     // 先删除该店铺该区域的旧数据
     await PendingSettlementDetail.destroy({
