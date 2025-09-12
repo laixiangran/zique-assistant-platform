@@ -15,7 +15,7 @@ export async function POST(request) {
     const { mall_id, mall_name, settlement_update_state } = body;
 
     // 验证店铺权限
-    const mallAccessResult = await validateMallAccess(authResult.user, mall_id);
+    const mallAccessResult = await validateMallAccess(authResult, mallId);
     if (!mallAccessResult.success) {
       return mallAccessResult.response;
     }

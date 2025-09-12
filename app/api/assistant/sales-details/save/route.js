@@ -24,7 +24,7 @@ export async function POST(request) {
     }
 
     // 验证店铺权限
-    const mallAccessResult = await validateMallAccess(authResult.user, mallId);
+    const mallAccessResult = await validateMallAccess(authResult, mallId);
     if (!mallAccessResult.success) {
       return mallAccessResult.response;
     }

@@ -33,8 +33,12 @@ export async function GET(request) {
 
     // 构建Sequelize查询条件将在下面统一处理
 
-    // 构建Sequelize查询条件（包含权限控制）
-    const whereCondition = await buildMallWhereCondition(authResult, mallId, mallName);
+    // 构建查询条件（包含权限控制）
+    const whereCondition = await buildMallWhereCondition(
+      authResult,
+      mallId,
+      mallName
+    );
     
     if (regionName) {
       whereCondition.region_name = { [Op.like]: `%${regionName}%` };

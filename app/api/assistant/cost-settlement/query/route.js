@@ -28,9 +28,9 @@ export async function GET(request) {
     // 计算偏移量
     const offset = (pageIndex - 1) * pageSize;
 
-    // 构建Sequelize查询条件（包含权限控制）
-    const whereCondition = buildMallWhereCondition(
-      authResult.allowedMallIds,
+    // 构建查询条件（包含权限控制）
+    const whereCondition = await buildMallWhereCondition(
+      authResult,
       mallId,
       mallName
     );
