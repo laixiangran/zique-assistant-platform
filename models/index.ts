@@ -11,6 +11,14 @@ import InvitationReward from './InvitationReward';
 import UserOperationLog from './UserOperationLog';
 import PasswordResetToken from './PasswordResetToken';
 import PluginVersion from './PluginVersion';
+import ArrivalDataDetail from './ArrivalDataDetail';
+import CostSettlement from './CostSettlement';
+import MallState from './MallState';
+import PackageFeature from './PackageFeature';
+import PackageHistory from './PackageHistory';
+import PendingSettlementDetail from './PendingSettlementDetail';
+import PromotionSalesDetail from './PromotionSalesDetail';
+import UserFeature from './UserFeature';
 
 // 设置模型关联
 SubAccount.belongsTo(User, {
@@ -38,6 +46,14 @@ export {
   UserOperationLog,
   PasswordResetToken,
   PluginVersion,
+  ArrivalDataDetail,
+  CostSettlement,
+  MallState,
+  PackageFeature,
+  PackageHistory,
+  PendingSettlementDetail,
+  PromotionSalesDetail,
+  UserFeature,
 };
 
 // 初始化数据库连接和模型同步
@@ -82,6 +98,14 @@ export default {
   UserOperationLog,
   PasswordResetToken,
   PluginVersion,
+  ArrivalDataDetail,
+  CostSettlement,
+  MallState,
+  PackageFeature,
+  PackageHistory,
+  PendingSettlementDetail,
+  PromotionSalesDetail,
+  UserFeature,
   initDatabase,
   closeDatabase,
 };
