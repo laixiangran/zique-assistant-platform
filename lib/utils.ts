@@ -279,8 +279,9 @@ export function validatePassword(password: string): {
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
-  message: string;
-  code?: number;
+  message?: string;
+  errorMsg?: string;
+  errorCode?: string;
 }
 
 export function successResponse<T>(
@@ -294,11 +295,14 @@ export function successResponse<T>(
   };
 }
 
-export function errorResponse(message: string, code = 400): ApiResponse {
+export function errorResponse(
+  errorMsg: string,
+  errorCode = '400'
+): ApiResponse {
   return {
     success: false,
-    message,
-    code,
+    errorMsg,
+    errorCode,
   };
 }
 

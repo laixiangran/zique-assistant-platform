@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest, JWTPayload } from './utils';
+import { getUserFromRequest, JWTPayload, errorResponse } from './utils';
 import { UserMallBinding } from '@/models';
 import { Op } from 'sequelize';
 
@@ -7,7 +7,7 @@ export interface UserAuthResult {
   success: boolean;
   error?: string;
   user?: JWTPayload;
-  allowedMallIds?: number[];
+  allowedMallIds?: string[];
   response?: NextResponse;
   isPluginMode?: boolean;
 }
@@ -17,32 +17,32 @@ export interface UserAuthResult {
  */
 export async function validateTemuApiAccess(
   temuCookies: string
-): Promise<{ valid: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(
       'https://agentseller.temu.com/api/seller/auth/userInfo',
       {
-        method: 'GET',
         headers: {
-          Cookie: temuCookies,
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'content-type': 'application/json',
+          cookie: temuCookies,
+          Referer: 'https://agentseller.temu.com/',
         },
+        body: '{}',
+        method: 'POST',
       }
     );
-
-    if (response.ok) {
-      return { valid: true };
+    const data = await response.json();
+    if (data.success) {
+      return { success: true };
     } else {
       return {
-        valid: false,
-        error: `Temu API访问失败: ${response.status} ${response.statusText}`,
+        success: false,
+        error: 'Temu API验证失败',
       };
     }
   } catch (error) {
-    console.error('Temu API验证失败:', error);
     return {
-      valid: false,
+      success: false,
       error: 'Temu API验证失败',
     };
   }
@@ -56,24 +56,53 @@ export async function authenticateUser(
 ): Promise<UserAuthResult> {
   try {
     // 检查是否为插件模式
-    const { searchParams } = new URL(request.url);
-    const endParam = searchParams.get('end');
-    const temuCookies = searchParams.get('temuCookies');
-    const mallId = searchParams.get('mall_id');
+    const endParam = request.headers.get('zique-end');
+    const temuCookie = request.headers.get('temu-cookie') || '';
+    const mallId = request.headers.get('mall_id') || '';
 
     // 插件模式验证
-    if (endParam === 'plugin' && temuCookies && mallId) {
-      const temuValidation = await validateTemuApiAccess(temuCookies);
-      if (!temuValidation.valid) {
+    if (endParam === 'plugin') {
+      const temuValidation = await validateTemuApiAccess(temuCookie);
+      if (!temuValidation.success) {
         return {
           success: false,
-          error: temuValidation.error || 'Temu API验证失败',
+          error: `Temu登录验证失败: ${
+            temuValidation.error || '请检查Temu登录状态'
+          }`,
           response: NextResponse.json(
-            {
-              success: false,
-              error: temuValidation.error || 'Temu API验证失败',
-            },
+            errorResponse(`Temu登录验证失败: ${
+              temuValidation.error || '请检查Temu登录状态'
+            }`),
             { status: 403 }
+          ),
+        };
+      }
+
+      // 验证mall_id是否有绑定关系
+      if (!mallId) {
+        return {
+          success: false,
+          error: '缺少mall_id参数',
+          response: NextResponse.json(
+            errorResponse('缺少mall_id参数'),
+            { status: 400 }
+          ),
+        };
+      }
+
+      const mallBinding = await UserMallBinding.findOne({
+        where: {
+          mallId: mallId,
+        },
+      });
+
+      if (!mallBinding) {
+        return {
+          success: false,
+          error: `店铺绑定验证失败: 店铺ID ${mallId} 未找到绑定关系，请先在系统中绑定该店铺`,
+          response: NextResponse.json(
+            errorResponse(`店铺绑定验证失败: 店铺ID ${mallId} 未找到绑定关系，请先在系统中绑定该店铺`),
+            { status: 404 }
           ),
         };
       }
@@ -82,7 +111,7 @@ export async function authenticateUser(
       return {
         success: true,
         isPluginMode: true,
-        allowedMallIds: [parseInt(mallId)],
+        allowedMallIds: [mallId],
       };
     }
 
@@ -94,7 +123,7 @@ export async function authenticateUser(
         success: false,
         error: '用户未登录',
         response: NextResponse.json(
-          { success: false, error: '用户未登录' },
+          errorResponse('用户未登录'),
           { status: 401 }
         ),
       };
@@ -109,14 +138,16 @@ export async function authenticateUser(
       raw: true,
     });
 
-    const allowedMallIds = mallBindings.map((binding) => binding.mallId);
+    const allowedMallIds: string[] = mallBindings.map(
+      (binding) => binding.mallId
+    );
 
     if (allowedMallIds.length === 0) {
       return {
         success: false,
         error: '用户未绑定任何店铺',
         response: NextResponse.json(
-          { success: false, error: '用户未绑定任何店铺' },
+          errorResponse('用户未绑定任何店铺'),
           { status: 403 }
         ),
       };
@@ -134,7 +165,7 @@ export async function authenticateUser(
       success: false,
       error: '认证失败',
       response: NextResponse.json(
-        { success: false, error: '认证失败' },
+        errorResponse('认证失败'),
         { status: 500 }
       ),
     };
@@ -146,24 +177,19 @@ export async function authenticateUser(
  */
 export async function validateMallAccess(
   authResult: UserAuthResult,
-  mallId?: string | number,
+  mallId?: string,
   mallName?: string
 ): Promise<{ success: boolean; error?: string; response?: NextResponse }> {
   // 插件模式下，直接验证店铺ID是否匹配
   if (authResult.isPluginMode) {
-    const requestedMallId =
-      typeof mallId === 'string' ? parseInt(mallId) : mallId;
-    if (
-      requestedMallId &&
-      authResult.allowedMallIds?.includes(requestedMallId)
-    ) {
+    if (mallId && authResult.allowedMallIds?.includes(mallId)) {
       return { success: true };
     } else {
       return {
         success: false,
         error: '插件模式下无权限访问指定店铺',
         response: NextResponse.json(
-          { success: false, error: '插件模式下无权限访问指定店铺' },
+          errorResponse('插件模式下无权限访问指定店铺'),
           { status: 403 }
         ),
       };
@@ -177,7 +203,7 @@ export async function validateMallAccess(
       success: false,
       error: '用户信息缺失',
       response: NextResponse.json(
-        { success: false, error: '用户信息缺失' },
+        errorResponse('用户信息缺失'),
         { status: 401 }
       ),
     };
@@ -209,7 +235,7 @@ export async function validateMallAccess(
           success: false,
           error: '用户无权限访问指定店铺',
           response: NextResponse.json(
-            { success: false, error: '用户无权限访问指定店铺' },
+            errorResponse('用户无权限访问指定店铺'),
             { status: 403 }
           ),
         };
@@ -218,7 +244,7 @@ export async function validateMallAccess(
           success: false,
           error: '用户未绑定任何店铺',
           response: NextResponse.json(
-            { success: false, error: '用户未绑定任何店铺' },
+            errorResponse('用户未绑定任何店铺'),
             { status: 403 }
           ),
         };
@@ -234,7 +260,7 @@ export async function validateMallAccess(
       success: false,
       error: '权限验证失败',
       response: NextResponse.json(
-        { success: false, error: '权限验证失败' },
+        errorResponse('权限验证失败'),
         { status: 500 }
       ),
     };
@@ -246,7 +272,7 @@ export async function validateMallAccess(
  */
 export async function getUserDefaultMallId(
   userId: number
-): Promise<number | null> {
+): Promise<string | null> {
   try {
     const mallBinding = await UserMallBinding.findOne({
       where: {
@@ -269,7 +295,7 @@ export async function getUserDefaultMallId(
  */
 export async function buildMallWhereCondition(
   authResult: UserAuthResult,
-  requestedMallId?: string | number,
+  requestedMallId?: string,
   requestedMallName?: string
 ): Promise<any> {
   const allowedMallIds = authResult.allowedMallIds || [];
@@ -279,12 +305,8 @@ export async function buildMallWhereCondition(
 
   // 如果指定了店铺ID，进一步限制
   if (requestedMallId) {
-    const mallId =
-      typeof requestedMallId === 'string'
-        ? parseInt(requestedMallId)
-        : requestedMallId;
-    if (allowedMallIds.includes(mallId)) {
-      whereCondition.mall_id = mallId;
+    if (allowedMallIds.includes(requestedMallId)) {
+      whereCondition.mall_id = requestedMallId;
     } else {
       // 如果请求的店铺ID不在允许列表中，返回一个不可能匹配的条件
       whereCondition.mall_id = -1;

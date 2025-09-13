@@ -1,20 +1,29 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { PendingSettlementDetail } from '@/models';
+import { authenticateUser } from '@/lib/user-auth';
 
-export async function POST(request) {
+export async function GET(request) {
   try {
-    const { mallId, regionCode } = await request.json();
+    // 验证用户权限
+    const authResult = await authenticateUser(request);
+    console.log('authResult: ', authResult);
+    if (!authResult.success) {
+      return authResult.response;
+    }
 
+    const mallId = authResult.allowedMallIds?.[0];
+    const { searchParams } = new URL(request.url);
+    const regionCode = searchParams.get('regionCode');
     const results = await PendingSettlementDetail.findAll({
       where: {
         mall_id: mallId,
-        region_code: regionCode
+        region_code: regionCode,
       },
       attributes: ['updated_time'],
       order: [['updated_time', 'DESC']],
       limit: 1,
-      raw: true
+      raw: true,
     });
 
     if (results.length > 0) {

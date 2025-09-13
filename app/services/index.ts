@@ -46,7 +46,7 @@ apiClient.interceptors.response.use(
     if (data && typeof data === 'object' && 'success' in data) {
       if (!data.success) {
         // 业务逻辑失败，抛出错误
-        const errorMessage = data.message || '请求失败，请稍后重试';
+        const errorMessage = data.errorMsg || '请求失败，请稍后重试';
         console.error(data);
         message.error(errorMessage);
         throw new Error(errorMessage);
@@ -62,24 +62,24 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error(error);
-    let errorMsg =
-      error.error ||
-      error.errorMessage ||
-      error.message ||
-      '请求失败，请稍后重试';
+    // 统一错误处理
+    console.error('API Error:', error);
 
     // 处理HTTP错误
     if (error.response) {
       const { data } = error.response;
-      errorMsg =
-        data.error ||
-        data.errorMessage ||
-        data.message ||
-        '请求失败，请稍后重试';
+      if (data && data.errorMsg) {
+        console.error(data);
+        message.error(data.errorMsg || '请求失败，请稍后重试');
+        throw new Error(data.errorMsg);
+      }
     }
-    message.error(errorMsg);
-    throw new Error(errorMsg);
+
+    // 处理网络错误或其他错误
+    const errorMessage = error.message || '请求失败，请稍后重试';
+    console.error(error);
+    message.error(errorMessage);
+    throw new Error(errorMessage);
   }
 );
 

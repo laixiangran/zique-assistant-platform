@@ -85,7 +85,7 @@ function RegisterForm() {
           ...prev,
           [type]: {
             status: data.available ? 'success' : 'error',
-            message: data.message,
+            message: data.errorMsg,
             checking: false,
           },
         }));

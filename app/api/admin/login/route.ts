@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import Admin from '@/models/Admin';
 import sequelize from '@/lib/database';
-import { generateAdminToken } from '@/lib/utils';
+import {
+  generateAdminToken,
+  successResponse,
+  errorResponse,
+} from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,15 +68,16 @@ export async function POST(request: NextRequest) {
     // 返回用户信息（不包含密码和盐值）
     const { password: _, salt: __, ...adminData } = admin.toJSON();
 
-    const response = NextResponse.json({
-      success: true,
-      message: '登录成功',
-      data: {
-        user: adminData,
-        token,
-        accountType: 'admin',
-      },
-    });
+    const response = NextResponse.json(
+      successResponse(
+        {
+          user: adminData,
+          token,
+          accountType: 'admin',
+        },
+        '登录成功'
+      )
+    );
 
     // 设置cookie，有效期7天
     response.cookies.set('admin_token', token, {
@@ -80,15 +85,14 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60, // 7天
-      path: '/'
+      path: '/',
     });
 
     return response;
   } catch (error) {
     console.error('管理员登录失败:', error);
-    return NextResponse.json(
-      { success: false, message: '登录失败，请稍后重试' },
-      { status: 500 }
-    );
+    return NextResponse.json(errorResponse('登录失败，请稍后重试'), {
+      status: 500,
+    });
   }
 }

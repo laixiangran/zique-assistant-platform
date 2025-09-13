@@ -6,7 +6,7 @@ interface UserMallBindingAttributes {
   id: number;
   userId: number;
   accountType: 'main' | 'sub';
-  mallId: number;
+  mallId: string;
   mallName: string;
   createdTime: Date;
   updatedTime: Date;
@@ -25,7 +25,7 @@ class UserMallBinding
   public id!: number;
   public userId!: number;
   public accountType!: 'main' | 'sub';
-  public mallId!: number;
+  public mallId!: string;
   public mallName!: string;
   public createdTime!: Date;
   public updatedTime!: Date;

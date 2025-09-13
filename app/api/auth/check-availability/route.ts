@@ -29,21 +29,13 @@ export async function POST(request: NextRequest) {
       case 'username':
         // 验证用户名格式
         if (value.length < 3 || value.length > 20) {
-          return NextResponse.json({
-            success: false,
-            data: {
-              available: false,
-              message: '用户名长度必须在3-20个字符之间',
-            },
+          return NextResponse.json(errorResponse('用户名长度必须在3-20个字符之间'), {
+            status: 400,
           });
         }
         if (!/^[a-zA-Z0-9_]+$/.test(value)) {
-          return NextResponse.json({
-            success: false,
-            data: {
-              available: false,
-              message: '用户名只能包含字母、数字和下划线',
-            },
+          return NextResponse.json(errorResponse('用户名只能包含字母、数字和下划线'), {
+            status: 400,
           });
         }
         whereCondition = { username: value };
@@ -52,9 +44,8 @@ export async function POST(request: NextRequest) {
       case 'phone':
         // 验证手机号格式
         if (!/^1[3-9]\d{9}$/.test(value)) {
-          return NextResponse.json({
-            success: false,
-            data: { available: false, message: '请输入正确的手机号格式' },
+          return NextResponse.json(errorResponse('请输入正确的手机号格式'), {
+            status: 400,
           });
         }
         whereCondition = { phone: value };
@@ -63,9 +54,8 @@ export async function POST(request: NextRequest) {
       case 'email':
         // 验证邮箱格式
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          return NextResponse.json({
-            success: false,
-            data: { available: false, message: '请输入正确的邮箱格式' },
+          return NextResponse.json(errorResponse('请输入正确的邮箱格式'), {
+            status: 400,
           });
         }
         whereCondition = { email: value };
@@ -92,6 +82,9 @@ export async function POST(request: NextRequest) {
           message = '邮箱已被注册';
           break;
       }
+      return NextResponse.json(errorResponse(message), {
+        status: 409,
+      });
     } else {
       switch (type) {
         case 'username':
@@ -106,10 +99,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: { available, message },
-    });
+    return NextResponse.json(successResponse({ available, message }));
   } catch (error) {
     console.error('检查可用性失败:', error);
     return NextResponse.json(errorResponse('检查失败，请稍后重试'), {

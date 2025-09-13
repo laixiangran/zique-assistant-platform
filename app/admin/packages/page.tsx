@@ -98,7 +98,7 @@ const AdminPackagesPage: React.FC = () => {
         setTotal(data.data.total || 0);
       } else {
         const errorData = await response.json();
-        message.error(errorData.message || '获取套餐列表失败');
+        message.error(errorData.errorMsg || '获取套餐列表失败');
       }
     } catch (error) {
       console.error('获取套餐列表失败:', error);
@@ -171,7 +171,7 @@ const AdminPackagesPage: React.FC = () => {
         fetchPackages();
       } else {
         const errorData = await response.json();
-        message.error(errorData.message || '操作失败');
+        message.error(errorData.errorMsg || '操作失败');
       }
     } catch (error) {
       console.error('提交失败:', error);
@@ -200,7 +200,7 @@ const AdminPackagesPage: React.FC = () => {
         fetchPackages();
       } else {
         const errorData = await response.json();
-        message.error(errorData.message || '操作失败');
+        message.error(errorData.errorMsg || '操作失败');
       }
     } catch (error) {
       console.error('状态修改失败:', error);
@@ -227,7 +227,7 @@ const AdminPackagesPage: React.FC = () => {
         fetchPackages();
       } else {
         const errorData = await response.json();
-        message.error(errorData.message || '删除失败');
+        message.error(errorData.errorMsg || '删除失败');
       }
     } catch (error) {
       console.error('删除失败:', error);

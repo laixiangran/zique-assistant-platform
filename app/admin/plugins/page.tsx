@@ -181,7 +181,7 @@ const AdminPluginVersionsPage: React.FC = () => {
           fetchPlugins();
         } else {
           const errorData = await response.json();
-          message.error(errorData.message || '更新失败');
+          message.error(errorData.errorMsg || '更新失败');
         }
       } else {
         // 新增模式：使用JSON格式，发布日期由API自动生成
@@ -211,7 +211,7 @@ const AdminPluginVersionsPage: React.FC = () => {
           fetchPlugins();
         } else {
           const errorData = await response.json();
-          message.error(errorData.message || '创建失败');
+          message.error(errorData.errorMsg || '创建失败');
         }
       }
     } catch (error) {
@@ -240,7 +240,7 @@ const AdminPluginVersionsPage: React.FC = () => {
         fetchPlugins();
       } else {
         const errorData = await response.json();
-        message.error(errorData.message || '删除失败');
+        message.error(errorData.errorMsg || '删除失败');
       }
     } catch (error) {
       console.error('删除失败:', error);
@@ -279,7 +279,7 @@ const AdminPluginVersionsPage: React.FC = () => {
           });
           message.success('文件上传成功');
         } else {
-          message.error(response.message || '文件上传失败');
+          message.error(response.errorMsg || '文件上传失败');
         }
       } else if (info.file.status === 'error') {
         message.error('文件上传失败');

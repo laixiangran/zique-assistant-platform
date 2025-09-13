@@ -32,7 +32,10 @@ export async function GET(request) {
 
     // 添加其他查询条件
     if (skuId) {
-      const skuIds = skuId.split(',').map(id => id.trim()).filter(id => id);
+      const skuIds = skuId
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => id);
       if (skuIds.length > 0) {
         whereCondition.sku_id = { [Op.in]: skuIds };
       }
@@ -42,7 +45,7 @@ export async function GET(request) {
     const queryOptimizer = createQueryOptimizer({
       enableCache: true,
       cacheTimeout: 300,
-      selectFields: FIELD_SELECTIONS.MALL_STATE
+      selectFields: FIELD_SELECTIONS.MALL_STATE,
     });
 
     // 执行优化查询
@@ -53,7 +56,7 @@ export async function GET(request) {
         pageIndex,
         pageSize,
         sortField,
-        sortOrder: sortOrder.toUpperCase()
+        sortOrder: sortOrder.toUpperCase(),
       },
       'mall_state'
     );
@@ -61,7 +64,7 @@ export async function GET(request) {
     // 转换时间格式
     const formattedResults = results.data.map((item) => ({
       ...item.dataValues,
-      updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss')
+      updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss'),
     }));
 
     return NextResponse.json({
@@ -70,7 +73,7 @@ export async function GET(request) {
       total: results.total,
       pageIndex: results.pageIndex,
       pageSize: results.pageSize,
-      totalPages: results.totalPages
+      totalPages: results.totalPages,
     });
   } catch (error) {
     return NextResponse.json(
