@@ -1,69 +1,69 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Op } from 'sequelize';
 import { PendingSettlementDetail, CostSettlement } from '@/models';
-import { USDToCNY } from '@/lib/utils';
+import { USDToCNY, successResponse, errorResponse } from '@/lib/utils';
+import { authenticateUser } from '@/lib/user-auth';
 import dayjs from 'dayjs';
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
+    // 用户权限验证
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return authResult.response || NextResponse.json(errorResponse('用户未登录或权限不足'), { status: 401 });
+    }
+
+    const { mallId, skuId } = await request.json();
+
+    if (!mallId || !skuId) {
+      return NextResponse.json(errorResponse('缺少必要参数'), { status: 400 });
+    }
+
     // 从表 pending_settlement_details 同步数据到表 cost_settlement
     const pendingDetails = await PendingSettlementDetail.findAll({
+      where: {
+        mallId: mallId,
+        skuId: skuId
+      },
       attributes: [
-        'mall_id',
-        'sku_id',
-        [PendingSettlementDetail.sequelize.fn('SUM', PendingSettlementDetail.sequelize.col('sales_volume')), 'pending_sales_volume'],
-        [PendingSettlementDetail.sequelize.fn('SUM', PendingSettlementDetail.sequelize.col('sales_amount')), 'pending_sales_amount']
+        'mallId', 'skuId', 'mallName', 'skuCode', 'skuProperty', 'goodsName',
+        'pendingSalesVolume', 'pendingSalesAmount', 'currency', 'updatedTime'
       ],
-      group: ['mall_id', 'sku_id'],
       raw: true
     });
 
     // 遍历查询结果，更新或插入到cost_settlement表中
-    for (const data of pendingDetails) {
+    for (const pendingDetail of pendingDetails) {
       const {
-        mall_id: mallId,
-        sku_id: skuId,
-        pending_sales_volume,
-        pending_sales_amount,
-      } = data;
-
-      const skuPendingData = await PendingSettlementDetail.findAll({
-        where: {
-          sku_id: skuId
-        },
-        attributes: ['mall_name', 'sku_code', 'sku_property', 'goods_name', 'currency', 'updated_time'],
-        order: [['updated_time', 'DESC']],
-        limit: 1,
-        raw: true
-      });
-
-      const {
-        mall_name: mallName,
-        sku_code: skuCode,
-        sku_property: skuProperty,
-        goods_name: goodsName,
+        mallId,
+        skuId,
+        mallName,
+        skuCode,
+        skuProperty,
+        goodsName,
+        pendingSalesVolume,
+        pendingSalesAmount,
         currency,
-        updated_time: pending_updated_time,
-      } = skuPendingData[0] || {};
+        updatedTime: pending_updated_time,
+      } = pendingDetail as any;
 
-      const pendingSalesVolume = pending_sales_volume;
-      const pendingSalesAmount =
-        currency === 'USD'
-          ? USDToCNY(pending_sales_amount)
-          : pending_sales_amount;
+      const pendingSalesVolumeNum = parseFloat(pendingSalesVolume?.toString() || '0') || 0;
+      const pendingSalesAmountNum = currency === 'USD'
+        ? USDToCNY(pendingSalesAmount)
+        : parseFloat(pendingSalesAmount?.toString() || '0') || 0;
 
       // 计算待结算平均价格
-      const pendingAveragePrice = pendingSalesVolume
-        ? Math.floor((pendingSalesAmount / pendingSalesVolume) * 100) / 100
+      const pendingAveragePrice = pendingSalesVolumeNum
+        ? Math.floor((pendingSalesAmountNum / pendingSalesVolumeNum) * 100) / 100
         : 0;
 
       // 检查是否已存在相同的mallId和skuId记录
       const existingRecord = await CostSettlement.findAll({
         where: {
-          mall_id: mallId,
-          sku_id: skuId
+          mallId: mallId,
+          skuId: skuId
         },
-        attributes: ['id', 'cost_price'],
+        attributes: ['id', 'costPrice'],
         raw: true
       });
 
@@ -108,10 +108,10 @@ export async function POST(request) {
           updateValues.push(pendingSalesAmount);
         }
 
-        // 如果存在产品价格 cost_price，则重新更新毛利润和利润率
-        const { cost_price } = existingRecord[0] || {};
+        // 如果存在产品价格 costPrice，则重新更新毛利润和利润率
+        const { costPrice: cost_price } = existingRecord[0] || {};
         if (cost_price) {
-          const costPrice = parseFloat(cost_price);
+          const costPrice = parseFloat(cost_price?.toString() || '0');
 
           // 1. 待结算毛利润=((待结算均价-产品成本-0.1)-待结算均价*2.5*0.01-(产品成本+0.1)*0.01)*待结算销量
           const pendingGrossProfit = pendingSalesVolume
@@ -120,7 +120,7 @@ export async function POST(request) {
                 0.1 -
                 pendingAveragePrice * 2.5 * 0.01 -
                 (costPrice + 0.1) * 0.01) *
-              (parseFloat(pendingSalesVolume) || 0)
+              (parseFloat(pendingSalesVolume.toString()) || 0)
             : null;
 
           updateFields.push('pending_gross_profit = ?');
@@ -130,7 +130,7 @@ export async function POST(request) {
           const pendingProfitRate =
             costPrice && pendingSalesVolume && pendingGrossProfit
               ? parseFloat(pendingGrossProfit.toFixed(2)) /
-                (costPrice * (parseFloat(pendingSalesVolume) || 0))
+                (costPrice * (parseFloat(pendingSalesVolume.toString()) || 0))
               : null;
 
           updateFields.push('pending_profit_rate = ?');
@@ -143,69 +143,72 @@ export async function POST(request) {
 
         // 如果有要更新的字段，则执行更新
         if (updateFields.length > 0) {
-          const updateData = {};
+          const updateData: any = {};
           
           // 构建更新对象
-          if (mallName !== undefined) updateData.mall_name = mallName;
-          if (skuCode !== undefined) updateData.sku_code = skuCode;
-          if (skuProperty !== undefined) updateData.sku_property = skuProperty;
-          if (goodsName !== undefined) updateData.goods_name = goodsName;
-          if (pendingAveragePrice !== undefined) updateData.pending_average_price = pendingAveragePrice;
-          if (pendingSalesVolume !== undefined) updateData.pending_sales_volume = pendingSalesVolume;
-          if (pendingSalesAmount !== undefined) updateData.pending_sales_amount = pendingSalesAmount;
+          if (mallName !== undefined) updateData.mallName = mallName;
+          if (skuCode !== undefined) updateData.skuCode = skuCode;
+          if (skuProperty !== undefined) updateData.skuProperty = skuProperty;
+          if (goodsName !== undefined) updateData.goodsName = goodsName;
+          if (pendingAveragePrice !== undefined) updateData.pendingAveragePrice = pendingAveragePrice;
+          if (pendingSalesVolume !== undefined) updateData.pendingSalesVolume = pendingSalesVolume;
+          if (pendingSalesAmount !== undefined) updateData.pendingSalesAmount = pendingSalesAmount;
           
           // 如果存在产品价格，添加毛利润和利润率
-          const { cost_price } = existingRecord[0] || {};
+          const { costPrice: cost_price } = (existingRecord[0] as any) || {};
           if (cost_price) {
-            const costPrice = parseFloat(cost_price);
+            const costPrice = parseFloat(cost_price?.toString() || '0');
             const pendingGrossProfit = pendingSalesVolume
               ? (pendingAveragePrice -
                   costPrice -
                   0.1 -
                   pendingAveragePrice * 2.5 * 0.01 -
                   (costPrice + 0.1) * 0.01) *
-                (parseFloat(pendingSalesVolume) || 0)
-              : null;
+                (parseFloat(pendingSalesVolume.toString()) || 0)
+              : 0;
             
-            updateData.pending_gross_profit = pendingGrossProfit;
+            if (pendingGrossProfit !== null && pendingGrossProfit !== undefined) {
+              updateData.pendingGrossProfit = pendingGrossProfit;
+            }
             
             const pendingProfitRate =
               costPrice && pendingSalesVolume && pendingGrossProfit
                 ? parseFloat(pendingGrossProfit.toFixed(2)) /
-                  (costPrice * (parseFloat(pendingSalesVolume) || 0))
-                : null;
+                  (costPrice * (parseFloat(pendingSalesVolume.toString()) || 0))
+                : 0;
             
-            updateData.pending_profit_rate = pendingProfitRate;
+            if (pendingProfitRate !== null && pendingProfitRate !== undefined) {
+              updateData.pendingProfitRate = pendingProfitRate;
+            }
           }
           
           // 总是更新时间字段
-          updateData.pending_updated_time = new_pending_updated_time;
-          updateData.updated_time = currentTime;
+          updateData.pendingUpdatedTime = new Date(new_pending_updated_time);
+          updateData.updatedTime = new Date(currentTime);
 
           await CostSettlement.update(updateData, {
             where: {
-              mall_id: mallId,
-              sku_id: skuId
+              mallId: mallId,
+              skuId: skuId
             }
           });
         }
       } else {
         // 如果不存在相同mallId和skuId的记录，则插入新记录
-        const insertData = {
-          mall_id: mallId,
-          sku_id: skuId,
-          created_time: currentTime,
-          pending_updated_time: currentTime,
-          updated_time: currentTime
+        const insertData: any = {
+          mallId: mallId,
+          skuId: skuId,
+          mallName: mallName || '',
+          skuCode: skuCode || '',
+          skuProperty: skuProperty || '',
+          goodsName: goodsName || '',
+          pendingAveragePrice: pendingAveragePrice || 0,
+          pendingSalesVolume: pendingSalesVolume || 0,
+          pendingSalesAmount: pendingSalesAmount || 0,
+          createdTime: new Date(currentTime),
+          pendingUpdatedTime: new Date(new_pending_updated_time),
+          updatedTime: new Date(currentTime)
         };
-
-        if (mallName !== undefined) insertData.mall_name = mallName;
-        if (skuCode !== undefined) insertData.sku_code = skuCode;
-        if (skuProperty !== undefined) insertData.sku_property = skuProperty;
-        if (goodsName !== undefined) insertData.goods_name = goodsName;
-        if (pendingAveragePrice !== undefined) insertData.pending_average_price = pendingAveragePrice;
-        if (pendingSalesVolume !== undefined) insertData.pending_sales_volume = pendingSalesVolume;
-        if (pendingSalesAmount !== undefined) insertData.pending_sales_amount = pendingSalesAmount;
 
         await CostSettlement.create(insertData);
       }
@@ -217,7 +220,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Database error:', error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

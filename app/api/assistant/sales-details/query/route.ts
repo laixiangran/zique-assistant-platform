@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { PromotionSalesDetail, CostSettlement } from '@/models';
 import { authenticateUser, buildMallWhereCondition } from '@/lib/user-auth';
 import { createQueryOptimizer, FIELD_SELECTIONS } from '@/lib/query-optimizer';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   try {
     // 用户权限验证
     const authResult = await authenticateUser(request);
@@ -15,11 +15,11 @@ export async function GET(request) {
 
     // 解析查询参数
     const { searchParams } = new URL(request.url);
-    const pageIndex = parseInt(searchParams.get('pageIndex')) || 1;
-    const pageSize = parseInt(searchParams.get('pageSize')) || 10;
-    const mallId = searchParams.get('mall_id'); // 店铺ID查询参数
-    const mallName = searchParams.get('mall_name'); // 新增mallName查询参数
-    const skuId = searchParams.get('sku_id');
+    const pageIndex = parseInt(searchParams.get('pageIndex') || '1') || 1;
+    const pageSize = parseInt(searchParams.get('pageSize') || '10') || 10;
+    const mallId = searchParams.get('mallId') || undefined; // 店铺ID查询参数
+    const mallName = searchParams.get('mallName') || undefined; // 新增mallName查询参数
+    const skuId = searchParams.get('skuId') || undefined;
 
     // 添加排序参数
     const sortField = searchParams.get('sortField');
@@ -33,7 +33,7 @@ export async function GET(request) {
 
     if (skuId) {
       const skuIdList = skuId.split(',').map((id) => id.trim());
-      whereCondition.sku_id = {
+      whereCondition.skuId = {
         [Op.in]: skuIdList
       };
     }
@@ -52,46 +52,46 @@ export async function GET(request) {
       {
         pageIndex,
         pageSize,
-        sortField: sortField || 'updated_time',
-        sortOrder: (sortOrder || 'DESC').toUpperCase()
+        sortField: sortField || 'updatedTime',
+        sortOrder: (sortOrder || 'DESC').toUpperCase() as 'ASC' | 'DESC'
       },
       'sales_details'
     );
     
     const { total, data: results } = queryResult;
 
-    // 获取所有唯一的sku_id
-    const skuIds = [...new Set(results.map((item) => item.sku_id))];
+    // 获取所有唯一的skuId
+    const skuIds = Array.from(new Set(results.map((item: any) => item.skuId).filter(Boolean)));
 
-    // 批量查询cost_settlement表
-    let costSettlementMap = {};
+    // 批量查询costSettlement表
+    let costSettlementMap: Record<string, { productName: string }> = {};
     if (skuIds.length > 0) {
       const costSettlementResults = await CostSettlement.findAll({
         where: {
-          sku_id: {
+          skuId: {
             [Op.in]: skuIds
           }
         },
-        attributes: ['sku_id', 'product_name'],
+        attributes: ['skuId', 'productName'],
         raw: true
       });
 
       // 创建映射以便快速查找
-      costSettlementResults.forEach((item) => {
-        costSettlementMap[item.sku_id] = {
-          product_name: item.product_name,
+      costSettlementResults.forEach((item: any) => {
+        costSettlementMap[item.skuId] = {
+          productName: item.productName,
         };
       });
     }
 
     // 转换时间格式
-    const formattedResults = results.map((item) => {
-      const costSettlementInfo = costSettlementMap[item.sku_id] || {};
+    const formattedResults = results.map((item: any) => {
+      const costSettlementInfo = costSettlementMap[item.skuId] || {};
       return {
         ...item,
-        product_name: costSettlementInfo.product_name,
-        created_time: dayjs(item.created_time).format('YYYY-MM-DD HH:mm:ss'),
-        updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss'),
+        productName: costSettlementInfo.productName,
+        createdTime: dayjs(item.createdTime).format('YYYY-MM-DD HH:mm:ss'),
+        updatedTime: dayjs(item.updatedTime).format('YYYY-MM-DD HH:mm:ss'),
       };
     });
 
@@ -107,7 +107,7 @@ export async function GET(request) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         data: [],
       },
       { status: 200 }

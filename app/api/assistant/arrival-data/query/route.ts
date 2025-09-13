@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { ArrivalDataDetail, CostSettlement } from '@/models';
 import { authenticateUser, buildMallWhereCondition } from '@/lib/user-auth';
 import { createQueryOptimizer, FIELD_SELECTIONS } from '@/lib/query-optimizer';
+import { successResponse, errorResponse } from '@/lib/utils';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   try {
     // 用户权限验证
     const authResult = await authenticateUser(request);
@@ -15,8 +16,8 @@ export async function GET(request) {
 
     // 解析查询参数
     const { searchParams } = new URL(request.url);
-    const pageIndex = parseInt(searchParams.get('pageIndex')) || 1;
-    const pageSize = parseInt(searchParams.get('pageSize')) || 10;
+    const pageIndex = parseInt(searchParams.get('pageIndex') || '1') || 1;
+    const pageSize = parseInt(searchParams.get('pageSize') || '10') || 10;
     const mallId = searchParams.get('mall_id'); // 店铺ID查询参数
     const mallName = searchParams.get('mall_name'); // 新增店铺名称查询参数
     const regionName = searchParams.get('region_name'); // 新增地区查询参数
@@ -32,21 +33,21 @@ export async function GET(request) {
     // 构建查询条件（包含权限控制）
     const whereCondition = await buildMallWhereCondition(
       authResult,
-      mallId,
-      mallName
+      mallId || undefined,
+      mallName || undefined
     );
 
     if (regionName) {
-      whereCondition.region_name = { [Op.like]: `%${regionName}%` };
+      whereCondition.regionName = { [Op.like]: `%${regionName}%` };
     }
 
     if (skuId) {
       const skuIds = skuId.split(',').map((id) => id.trim());
-      whereCondition.sku_id = { [Op.in]: skuIds };
+      whereCondition.skuId = { [Op.in]: skuIds };
     }
 
     if (accountingTimeStart && accountingTimeEnd) {
-      whereCondition.accounting_time = {
+      whereCondition.accountingTime = {
         [Op.between]: [
           `${accountingTimeStart} 00:00:00`,
           `${accountingTimeEnd} 23:59:59`,
@@ -68,71 +69,73 @@ export async function GET(request) {
       {
         pageIndex,
         pageSize,
-        sortField: sortField || 'accounting_time',
-        sortOrder: (sortOrder || 'DESC').toUpperCase(),
+        sortField: sortField || 'accountingTime',
+        sortOrder: (sortOrder || 'DESC').toUpperCase() as 'ASC' | 'DESC',
       },
       'arrival_data'
     );
 
     const { total, data: results } = queryResult;
 
-    // 获取所有唯一的sku_id
-    const skuIds = [...new Set(results.map((item) => item.sku_id))];
+    // 获取所有唯一的skuId
+    const skuIds = Array.from(new Set(results.map((item: any) => item.skuId)));
 
     // 批量查询cost_settlement表
-    let costSettlementMap = {};
+    let costSettlementMap: {
+      [key: string]: { productName: string; costPrice: number };
+    } = {};
     if (skuIds.length > 0) {
       const costSettlementResults = await CostSettlement.findAll({
         where: {
-          sku_id: { [Op.in]: skuIds },
+          skuId: { [Op.in]: skuIds },
         },
-        attributes: ['sku_id', 'product_name', 'cost_price'],
+        attributes: ['skuId', 'productName', 'costPrice'],
         raw: true,
       });
 
       // 创建映射以便快速查找
-      costSettlementResults.forEach((item) => {
-        costSettlementMap[item.sku_id] = {
-          product_name: item.product_name,
-          cost_price: item.cost_price,
+      costSettlementResults.forEach((item: any) => {
+        costSettlementMap[item.skuId] = {
+          productName: item.productName,
+          costPrice: item.costPrice,
         };
       });
     }
 
     // 转换时间格式&计算已到账平均价格
-    const formattedResults = results.map((item) => {
-      const costSettlementInfo = costSettlementMap[item.sku_id] || {};
-      item.d30_arrival_average_price = item.sales_amount
-        ? Math.floor((item.sales_amount / item.sales_volume) * 100) / 100
+    const formattedResults = results.map((item: any) => {
+      const costSettlementInfo = costSettlementMap[item.skuId] || {};
+      item.d30ArrivalAveragePrice = item.salesAmount
+        ? Math.floor((item.salesAmount / item.salesVolume) * 100) / 100
         : 0;
       return {
         ...item,
-        product_name: costSettlementInfo.product_name,
-        cost_price: costSettlementInfo.cost_price,
-        accounting_time: dayjs(item.accounting_time).format(
+        productName: costSettlementInfo.productName,
+        costPrice: costSettlementInfo.costPrice,
+        accountingTime: dayjs(item.accountingTime).format(
           'YYYY-MM-DD HH:mm:ss'
         ),
-        created_time: dayjs(item.created_time).format('YYYY-MM-DD HH:mm:ss'),
-        updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss'),
+        createdTime: dayjs(item.createdTime).format('YYYY-MM-DD HH:mm:ss'),
+        updatedTime: dayjs(item.updatedTime).format('YYYY-MM-DD HH:mm:ss'),
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      data: formattedResults || [],
-      total: queryResult.total,
-      pageIndex: queryResult.pageIndex,
-      pageSize: queryResult.pageSize,
-      totalPages: queryResult.totalPages,
-    });
-  } catch (error) {
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-        data: [],
-      },
-      { status: 200 }
+      successResponse(
+        {
+          data: formattedResults || [],
+          total: queryResult.total,
+          pageIndex: queryResult.pageIndex,
+          pageSize: queryResult.pageSize,
+          totalPages: queryResult.totalPages,
+        },
+        '查询成功'
+      )
     );
+  } catch (error) {
+    console.error('查询到货数据失败:', error);
+    return NextResponse.json(errorResponse('查询失败，请稍后重试'), {
+      status: 500,
+    });
   }
 }

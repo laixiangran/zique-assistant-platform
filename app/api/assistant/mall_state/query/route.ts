@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import dayjs from 'dayjs';
 import { MallState } from '@/models';
 import { Op } from 'sequelize';
 import { authenticateUser, buildMallWhereCondition } from '@/lib/user-auth';
 import { createQueryOptimizer, FIELD_SELECTIONS } from '@/lib/query-optimizer';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   try {
     // 验证用户权限
     const authResult = await authenticateUser(request);
@@ -17,10 +17,10 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const pageIndex = parseInt(searchParams.get('pageIndex') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
-    const mallId = searchParams.get('mall_id');
-    const mallName = searchParams.get('mallName');
-    const skuId = searchParams.get('skuId');
-    const sortField = searchParams.get('sortField') || 'updated_time';
+    const mallId = searchParams.get('mallId') || undefined;
+    const mallName = searchParams.get('mallName') || undefined;
+    const skuId = searchParams.get('skuId') || undefined;
+    const sortField = searchParams.get('sortField') || 'updatedTime';
     const sortOrder = searchParams.get('sortOrder') || 'DESC';
 
     // 构建查询条件（包含权限控制）
@@ -37,7 +37,7 @@ export async function GET(request) {
         .map((id) => id.trim())
         .filter((id) => id);
       if (skuIds.length > 0) {
-        whereCondition.sku_id = { [Op.in]: skuIds };
+        whereCondition.skuId = { [Op.in]: skuIds };
       }
     }
 
@@ -56,15 +56,15 @@ export async function GET(request) {
         pageIndex,
         pageSize,
         sortField,
-        sortOrder: sortOrder.toUpperCase(),
+        sortOrder: sortOrder.toUpperCase() as 'ASC' | 'DESC',
       },
       'mall_state'
     );
 
     // 转换时间格式
-    const formattedResults = results.data.map((item) => ({
+    const formattedResults = results.data.map((item: any) => ({
       ...item.dataValues,
-      updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss'),
+      updatedTime: dayjs(item.updatedTime).format('YYYY-MM-DD HH:mm:ss'),
     }));
 
     return NextResponse.json({
@@ -79,7 +79,7 @@ export async function GET(request) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         data: null,
       },
       { status: 200 }

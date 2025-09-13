@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import dayjs from 'dayjs';
 import { PendingSettlementDetail } from '@/models';
 import { authenticateUser, validateMallAccess } from '@/lib/user-auth';
+import { successResponse, errorResponse } from '@/lib/utils';
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     // 用户权限验证
     const authResult = await authenticateUser(request);
@@ -23,8 +24,8 @@ export async function POST(request) {
     // 先删除该店铺该区域的旧数据
     await PendingSettlementDetail.destroy({
       where: {
-        mall_id: mallId,
-        region_code: regionCode
+        mallId: mallId,
+        regionCode: regionCode
       }
     });
 
@@ -45,30 +46,31 @@ export async function POST(request) {
         updatedTime = dayjs().format('YYYY-MM-DD HH:mm:ss'),
       } = data;
 
-      const createTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+      const createTime = new Date();
+      const updateTime = new Date(updatedTime);
       
       await PendingSettlementDetail.create({
-        mall_id: mallId,
-        mall_name: mallName,
-        region_code: regionCode,
-        region_name: regionName,
-        sku_id: skuId,
-        sku_code: skuCode,
-        goods_name: goodsName,
-        sku_property: skuProperty,
-        sales_volume: salesVolume,
-        sales_amount: estimatedPendingSalesAmount,
+        mallId: mallId,
+        mallName: mallName,
+        regionCode: regionCode,
+        regionName: regionName,
+        skuId: skuId,
+        skuCode: skuCode,
+        goodsName: goodsName,
+        skuProperty: skuProperty,
+        salesVolume: salesVolume,
+        salesAmount: estimatedPendingSalesAmount,
         currency: currency,
-        created_time: createTime,
-        updated_time: updatedTime
+        createdTime: createTime,
+        updatedTime: updateTime
       });
     }
 
-    return NextResponse.json({ success: true, data: '数据保存成功！' });
+    return NextResponse.json(successResponse('数据保存成功！'));
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    console.error('保存待结算数据失败:', error);
+    return NextResponse.json(errorResponse('保存失败，请稍后重试'), {
+      status: 500,
+    });
   }
 }

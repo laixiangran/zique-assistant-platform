@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import dayjs from 'dayjs';
 import { Op } from 'sequelize';
 import { CostSettlement } from '@/models';
 import { authenticateUser, buildMallWhereCondition } from '@/lib/user-auth';
 import { createQueryOptimizer, FIELD_SELECTIONS } from '@/lib/query-optimizer';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   try {
     // 用户权限验证
     const authResult = await authenticateUser(request);
@@ -15,12 +15,12 @@ export async function GET(request) {
 
     // 解析查询参数
     const { searchParams } = new URL(request.url);
-    const pageIndex = parseInt(searchParams.get('pageIndex')) || 1;
-    const pageSize = parseInt(searchParams.get('pageSize')) || 10;
-    const skuId = searchParams.get('sku_id');
-    const mallId = searchParams.get('mall_id');
-    const mallName = searchParams.get('mall_name');
-    const costStatus = searchParams.get('cost_status');
+    const pageIndex = parseInt(searchParams.get('pageIndex') || '1') || 1;
+    const pageSize = parseInt(searchParams.get('pageSize') || '10') || 10;
+    const skuId = searchParams.get('skuId') || undefined;
+    const mallId = searchParams.get('mallId') || undefined;
+    const mallName = searchParams.get('mallName') || undefined;
+    const costStatus = searchParams.get('costStatus') || undefined;
 
     // 添加排序参数
     const sortField = searchParams.get('sortField');
@@ -35,16 +35,16 @@ export async function GET(request) {
 
     if (skuId) {
       const skuIdList = skuId.split(',').map((id) => id.trim());
-      whereCondition.sku_id = { [Op.in]: skuIdList };
+      whereCondition.skuId = { [Op.in]: skuIdList };
     }
 
     // 添加成本状态查询条件
     if (costStatus === 'completed') {
-      whereCondition.cost_price = {
+      whereCondition.costPrice = {
         [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }],
       };
     } else if (costStatus === 'incomplete') {
-      whereCondition.cost_price = {
+      whereCondition.costPrice = {
         [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }],
       };
     }
@@ -63,8 +63,8 @@ export async function GET(request) {
       {
         pageIndex,
         pageSize,
-        sortField: sortField || 'updated_time',
-        sortOrder: (sortOrder || 'DESC').toUpperCase(),
+        sortField: sortField || 'updatedTime',
+        sortOrder: (sortOrder || 'DESC').toUpperCase() as 'ASC' | 'DESC',
       },
       'cost_settlement'
     );
@@ -72,16 +72,16 @@ export async function GET(request) {
     const { total, data: results } = queryResult;
 
     // 转换时间格式
-    const formattedResults = results.map((item) => ({
+    const formattedResults = results.map((item: any) => ({
       ...item,
-      created_time: dayjs(item.created_time).format('YYYY-MM-DD HH:mm:ss'),
-      pending_updated_time: dayjs(item.pending_updated_time).format(
+      createdTime: dayjs(item.createdTime).format('YYYY-MM-DD HH:mm:ss'),
+      pendingUpdatedTime: dayjs(item.pendingUpdatedTime).format(
         'YYYY-MM-DD HH:mm:ss'
       ),
-      arrival_updated_time: dayjs(item.arrival_updated_time).format(
+      arrivalUpdatedTime: dayjs(item.arrivalUpdatedTime).format(
         'YYYY-MM-DD HH:mm:ss'
       ),
-      updated_time: dayjs(item.updated_time).format('YYYY-MM-DD HH:mm:ss'),
+      updatedTime: dayjs(item.updatedTime).format('YYYY-MM-DD HH:mm:ss'),
     }));
 
     return NextResponse.json({
@@ -96,7 +96,7 @@ export async function GET(request) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         data: [],
       },
       { status: 200 }

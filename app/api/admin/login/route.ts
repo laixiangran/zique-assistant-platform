@@ -15,36 +15,32 @@ export async function POST(request: NextRequest) {
     const { username, password } = await request.json();
 
     if (!username || !password) {
-      return NextResponse.json(
-        { success: false, message: '用户名和密码不能为空' },
-        { status: 400 }
-      );
+      return NextResponse.json(errorResponse('用户名和密码不能为空'), {
+        status: 400,
+      });
     }
 
     // 查找管理员
     const admin = await Admin.findOne({ where: { username } });
     if (!admin) {
-      return NextResponse.json(
-        { success: false, message: '用户名或密码错误' },
-        { status: 401 }
-      );
+      return NextResponse.json(errorResponse('用户名或密码错误'), {
+        status: 401,
+      });
     }
 
     // 检查账户状态
     if (admin.status !== 'active') {
-      return NextResponse.json(
-        { success: false, message: '账户已被禁用' },
-        { status: 401 }
-      );
+      return NextResponse.json(errorResponse('账户已被禁用'), {
+        status: 401,
+      });
     }
 
     // 验证密码
     const isPasswordValid = await bcrypt.compare(password, admin.password);
     if (!isPasswordValid) {
-      return NextResponse.json(
-        { success: false, message: '用户名或密码错误' },
-        { status: 401 }
-      );
+      return NextResponse.json(errorResponse('用户名或密码错误'), {
+        status: 401,
+      });
     }
 
     const token = generateAdminToken({

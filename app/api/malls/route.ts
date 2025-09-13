@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
         userId: userId,
         accountType: 'main',
         mallName: mall.mallName,
-        mallId: mall.mallId,
+        mallId: mall.mallId.toString(),
       });
       mallBindings.push(mallBinding);
 

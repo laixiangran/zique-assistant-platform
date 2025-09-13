@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import dayjs from 'dayjs';
 import { MallState } from '@/models';
 import { authenticateUser, validateMallAccess } from '@/lib/user-auth';
+import { successResponse, errorResponse } from '@/lib/utils';
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     // 用户权限验证
     const authResult = await authenticateUser(request);
@@ -12,7 +13,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { mall_id, mall_name, settlement_update_state } = body;
+    const { mallId, mallName, stateType, state } = body;
 
     // 验证店铺权限
     const mallAccessResult = await validateMallAccess(authResult, mallId);
@@ -20,43 +21,45 @@ export async function POST(request) {
       return mallAccessResult.response;
     }
 
-    // 检查是否存在相同的 mall_id 记录
+    // 检查是否存在相同的 mallId 记录
     const existingRecord = await MallState.findAll({
       where: {
-        mall_id: mall_id
+        mallId: mallId
       },
       attributes: ['id'],
       raw: true
     });
 
-    const created_time = dayjs().format('YYYY-MM-DD HH:mm:ss');
-    const updated_time = created_time;
+    const createdTime = new Date();
+    const updatedTime = createdTime;
     if (existingRecord.length > 0) {
       // 如果存在，则更新记录
       await MallState.update({
-        mall_name: mall_name,
-        settlement_update_state: settlement_update_state,
-        updated_time: updated_time
+        mallName: mallName,
+        stateType: stateType,
+        state: state,
+        updatedTime: updatedTime
       }, {
         where: {
-          mall_id: mall_id
+          mallId: mallId
         }
       });
     } else {
       // 如果不存在，则插入新记录
       await MallState.create({
-        mall_id: mall_id,
-        mall_name: mall_name,
-        settlement_update_state: settlement_update_state,
-        created_time: created_time,
-        updated_time: updated_time
+        mallId: mallId,
+        mallName: mallName,
+        stateType: stateType,
+        state: state,
+        createdTime: createdTime,
+        updatedTime: updatedTime
       });
     }
-    return NextResponse.json({ success: true, data: '店铺状态记录成功！' });
+    return NextResponse.json(successResponse('店铺状态记录成功！'));
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    console.error('保存店铺状态失败:', error);
+    return NextResponse.json(errorResponse('保存失败，请稍后重试'), {
+      status: 500,
+    });
   }
 }
