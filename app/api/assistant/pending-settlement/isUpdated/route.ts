@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import dayjs from 'dayjs';
 import { PendingSettlementDetail } from '@/models';
 import { authenticateUser } from '@/lib/user-auth';
+import { successResponse, errorResponse } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,25 +33,14 @@ export async function GET(request: NextRequest) {
 
       // 如果更新时间在3小时内，返回true
       if (updatedTime.isAfter(threeHoursAgo)) {
-        return NextResponse.json({
-          success: true,
-          data: true,
-        });
+        return NextResponse.json(successResponse(true));
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: false,
-    });
+    return NextResponse.json(successResponse(false));
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: false,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
+      status: 500
+    });
   }
 }

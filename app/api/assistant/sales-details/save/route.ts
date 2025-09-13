@@ -17,10 +17,7 @@ export async function POST(request: NextRequest) {
     const { mallId, data: datas = [] } = body;
 
     if (!mallId) {
-      return NextResponse.json({
-        success: false,
-        data: '请传入参数 mallId',
-      });
+      return NextResponse.json(errorResponse('请传入参数 mallId'));
     }
 
     // 验证店铺权限

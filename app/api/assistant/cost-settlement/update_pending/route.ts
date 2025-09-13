@@ -213,15 +213,11 @@ export async function POST(request: NextRequest) {
         await CostSettlement.create(insertData);
       }
     }
-    return NextResponse.json({
-      success: true,
-      data: '待结算数据同步到成本结算成功！',
-    });
+    return NextResponse.json(successResponse('待结算数据同步到成本结算成功！'));
   } catch (error) {
     console.error('Database error:', error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
+      status: 500
+    });
   }
 }

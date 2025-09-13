@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import { CostSettlement } from '@/models';
 import { authenticateUser, buildMallWhereCondition } from '@/lib/user-auth';
 import { createQueryOptimizer, FIELD_SELECTIONS } from '@/lib/query-optimizer';
+import { successResponse, errorResponse } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,22 +85,16 @@ export async function GET(request: NextRequest) {
       updatedTime: dayjs(item.updatedTime).format('YYYY-MM-DD HH:mm:ss'),
     }));
 
-    return NextResponse.json({
-      success: true,
+    return NextResponse.json(successResponse({
       data: formattedResults || [],
       total: queryResult.total,
       pageIndex: queryResult.pageIndex,
       pageSize: queryResult.pageSize,
       totalPages: queryResult.totalPages,
-    });
+    }));
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: [],
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
+      status: 500
+    });
   }
 }

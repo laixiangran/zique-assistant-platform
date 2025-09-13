@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const authResult = await authenticateRequest(request);
     if (!authResult.success) {
       return NextResponse.json(
-        { success: false, message: authResult.error || '身份验证失败' },
+        { success: false, errorMsg: authResult.error || '身份验证失败' },
         { status: 401 }
       );
     }
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const user = await User.findByPk(userId);
     if (!user) {
       return NextResponse.json(
-        { success: false, message: '用户不存在' },
+        { success: false, errorMsg: '用户不存在' },
         { status: 404 }
       );
     }
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('获取用户邀请信息失败:', error);
     return NextResponse.json(
-      { success: false, message: '服务器内部错误' },
+      { success: false, errorMsg: '服务器内部错误' },
       { status: 500 }
     );
   }

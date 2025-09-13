@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import Admin from '@/models/Admin';
 import sequelize from '@/lib/database';
-import {
-  generateAdminToken,
-  successResponse,
-  errorResponse,
-} from '@/lib/utils';
+import { generateAdminToken, successResponse, errorResponse } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {

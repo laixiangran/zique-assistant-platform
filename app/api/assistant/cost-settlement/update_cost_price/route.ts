@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { CostSettlement } from '@/models';
 import { authenticateUser, validateMallAccess } from '@/lib/user-auth';
+import { successResponse, errorResponse } from '@/lib/utils';
 import { Op } from 'sequelize';
 
 export async function POST(request: NextRequest) {
@@ -30,10 +31,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (currentData.length === 0) {
-      return NextResponse.json(
-        { success: false, error: '未找到对应的 SKU 记录' },
-        { status: 200 }
-      );
+      return NextResponse.json(errorResponse('未找到对应的 SKU 记录'), {
+        status: 404
+      });
     }
 
     const data = currentData[0];
@@ -97,15 +97,11 @@ export async function POST(request: NextRequest) {
         skuId: skuId
       }
     });
-    return NextResponse.json({
-      success: true,
-      data: '成本价以及利润数据更新成功！',
-    });
+    return NextResponse.json(successResponse('成本价以及利润数据更新成功！'));
   } catch (error) {
     console.error('Database error:', error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
+      status: 500
+    });
   }
 }

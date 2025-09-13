@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { PromotionSalesDetail } from '@/models';
-import { formatVolume, formatAmount, formatRate } from '@/lib/utils';
+import { formatVolume, formatAmount, formatRate, successResponse, errorResponse } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,10 +10,7 @@ export async function GET(request: NextRequest) {
     let data = {};
 
     if (!mall_id) {
-      return NextResponse.json({
-        success: false,
-        data: '请传入参数 mall_id',
-      });
+      return NextResponse.json(errorResponse('请传入参数 mall_id'));
     }
 
     const result = await PromotionSalesDetail.findAll({
@@ -91,19 +88,11 @@ export async function GET(request: NextRequest) {
       mallTodaySalesVolume: formatVolume(mallTodaySalesVolume),
       updatedTime,
     };
-    return NextResponse.json({
-      success: true,
-      data,
-    });
+    return NextResponse.json(successResponse(data));
   } catch (error) {
     console.log('error: ', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: [],
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
+      status: 500
+    });
   }
 }

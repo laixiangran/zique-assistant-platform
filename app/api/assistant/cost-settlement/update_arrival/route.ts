@@ -188,15 +188,11 @@ export async function POST(request: NextRequest) {
         await CostSettlement.create(insertData);
       }
     }
-    return NextResponse.json({
-      success: true,
-      data: '30天已结算数据同步到成本结算成功！',
-    });
+    return NextResponse.json(successResponse('30天已结算数据同步到成本结算成功！'));
   } catch (error: any) {
     console.error('Database error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json(errorResponse(error.message), {
+      status: 500
+    });
   }
 }

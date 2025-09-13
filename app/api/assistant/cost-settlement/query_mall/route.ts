@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import dayjs from 'dayjs';
 import { CostSettlement } from '@/models';
-import { formatVolume, formatAmount, formatRate } from '@/lib/utils';
+import { formatVolume, formatAmount, formatRate, successResponse, errorResponse } from '@/lib/utils';
 import { authenticateUser, validateMallAccess } from '@/lib/user-auth';
 
 export async function GET(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     // 用户权限验证
     const authResult = await authenticateUser(request);
     if (!authResult || !authResult.success) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(errorResponse('Unauthorized'), { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -130,18 +130,10 @@ export async function GET(request: NextRequest) {
         arrivalUpdatedTime,
       };
     }
-    return NextResponse.json({
-      success: true,
-      data,
-    });
+    return NextResponse.json(successResponse(data));
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: [],
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
+      status: 500
+    });
   }
 }

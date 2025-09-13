@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFromRequest } from '@/lib/admin-auth';
 import { UserOperationLog } from '@/models';
 import sequelize from '@/lib/database';
+import { successResponse, errorResponse } from '@/lib/utils';
 
 // 获取最近活动数据
 export async function GET(request: NextRequest) {
@@ -9,10 +10,7 @@ export async function GET(request: NextRequest) {
     // 验证管理员身份
     const admin = await getAdminFromRequest(request);
     if (!admin) {
-      return NextResponse.json(
-        { success: false, message: '未授权访问' },
-        { status: 401 }
-      );
+      return NextResponse.json(errorResponse('未授权访问'), { status: 401 });
     }
 
     await sequelize.authenticate();
@@ -51,16 +49,9 @@ export async function GET(request: NextRequest) {
 
     const result = activities.length > 0 ? activities : mockActivities;
 
-    return NextResponse.json({
-      success: true,
-      message: '获取最近活动成功',
-      data: result,
-    });
+    return NextResponse.json(successResponse(result, '获取最近活动成功'));
   } catch (error) {
     console.error('获取最近活动失败:', error);
-    return NextResponse.json(
-      { success: false, message: '获取最近活动失败' },
-      { status: 500 }
-    );
+    return NextResponse.json(errorResponse('获取最近活动失败'), { status: 500 });
   }
 }
