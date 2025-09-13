@@ -106,6 +106,13 @@ MallState.init(
     timestamps: true,
     createdAt: 'createdTime',
     updatedAt: 'updatedTime',
+    indexes: [
+      {
+        unique: true,
+        fields: ['mallId', 'regionCode', 'stateType'],
+        name: 'unique_mall_region_state',
+      },
+    ],
   }
 );
 

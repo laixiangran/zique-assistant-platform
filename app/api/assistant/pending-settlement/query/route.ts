@@ -103,9 +103,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 转换时间格式&计算待结算平均价格
+    // 计算待结算平均价格
     const formattedResults = results.map((item: any) => {
-      console.log('item: ', item);
       const costSettlementInfo = costSettlementMap[item.skuId] || {};
       const pendingAveragePrice = item.salesAmount
         ? +item.salesAmount / +item.salesVolume
