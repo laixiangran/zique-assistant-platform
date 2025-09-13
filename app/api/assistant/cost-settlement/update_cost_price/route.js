@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { CostSettlement } from '../../../../models';
-import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
+import { CostSettlement } from '@/models';
+import { authenticateUser, validateMallAccess } from '@/lib/user-auth';
 import { Op } from 'sequelize';
 
 export async function POST(request) {

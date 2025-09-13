@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
-import { CostSettlement } from '../../../../models';
-import { formatVolume, formatAmount, formatRate } from '../../../../lib/utils';
-import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
+import { CostSettlement } from '@/models';
+import { formatVolume, formatAmount, formatRate } from '@/lib/utils';
+import { authenticateUser, validateMallAccess } from '@/lib/user-auth';
 
 export async function GET(request) {
   try {

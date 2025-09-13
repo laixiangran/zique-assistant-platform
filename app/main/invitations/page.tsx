@@ -21,7 +21,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
-import { invitationsAPI } from '../../services';
+import { invitationsAPI } from '@/app/services';
 
 export default function InvitationsPage() {
   const [loading, setLoading] = useState(false);

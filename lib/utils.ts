@@ -416,3 +416,47 @@ export function sendMessageToPlugin(
     );
   });
 }
+
+export function USDToCNY(amount: any) {
+  const rate = 7;
+  return amount * rate;
+}
+
+export function isEmptyValue(value: any) {
+  return value === null || value === undefined || value === '';
+}
+
+/**
+ * 格式化金额
+ * @param {*} amount
+ * @param {*} currency
+ * @returns
+ */
+export function formatAmount(amount: any, currency = '¥') {
+  if (currency === 'CNY') {
+    currency = '¥';
+  } else if (currency === 'USD') {
+    currency = '$';
+  }
+  return !isEmptyValue(amount)
+    ? `${currency}${parseFloat(amount).toFixed(2)}`
+    : '-';
+}
+
+/**
+ * 格式化数量
+ * @param {*} volume
+ * @returns
+ */
+export function formatVolume(volume: any) {
+  return !isEmptyValue(volume) ? volume : '-';
+}
+
+/**
+ * 格式化百分比
+ * @param {*} rate
+ * @returns
+ */
+export function formatRate(rate: any) {
+  return !isEmptyValue(rate) ? (parseFloat(rate) * 100).toFixed(2) + '%' : '-';
+}

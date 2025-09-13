@@ -19,7 +19,7 @@ import {
 } from 'antd';
 import { sendMessageToPlugin } from '@/lib/utils';
 import { DeleteOutlined, PlusOutlined, ShopOutlined } from '@ant-design/icons';
-import { mallsAPI } from '../../services';
+import { mallsAPI } from '@/app/services';
 
 interface Mall {
   id: number;

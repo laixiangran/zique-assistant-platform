@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Form, Input, Button, Card, message, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import { authAPI } from '../services';
+import { authAPI } from '@/app/services';
 import './page.scss';
 
 interface LoginFormData {

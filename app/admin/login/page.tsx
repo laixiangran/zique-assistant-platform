@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { adminAuthAPI } from '../../services';
+import { adminAuthAPI } from '@/app/services';
 import './page.scss';
 
 interface LoginFormData {

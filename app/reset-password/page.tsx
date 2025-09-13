@@ -8,7 +8,7 @@ import {
   EyeInvisibleOutlined,
   EyeTwoTone,
 } from '@ant-design/icons';
-import { authAPI } from '../services';
+import { authAPI } from '@/app/services';
 import './page.scss';
 
 interface ResetPasswordFormData {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
-import { PendingSettlementDetail } from '../../../../models';
+import { PendingSettlementDetail } from '@/models';
 
 export async function POST(request) {
   try {

@@ -22,7 +22,7 @@ import {
   CopyOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { subAccountsAPI, mallsAPI, authAPI } from '../../services';
+import { subAccountsAPI, mallsAPI, authAPI } from '@/app/services';
 
 import { useRouter } from 'next/navigation';
 

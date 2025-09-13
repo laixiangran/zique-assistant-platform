@@ -23,8 +23,8 @@ import {
   ShoppingOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { adminAuthAPI } from '../services';
-import logo from '../../public/logo.png';
+import { adminAuthAPI } from '@/app/services';
+import logo from '@/public/logo.png';
 
 const { Header, Sider, Content } = Layout;
 

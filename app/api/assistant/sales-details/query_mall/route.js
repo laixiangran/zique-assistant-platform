@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
-import { PromotionSalesDetail } from '../../../../models';
-import { formatVolume, formatAmount, formatRate } from '../../../../lib/utils';
+import { PromotionSalesDetail } from '@/models';
+import { formatVolume, formatAmount, formatRate } from '@/lib/utils';
 
 export async function GET(request) {
   try {

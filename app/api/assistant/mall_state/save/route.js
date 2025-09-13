@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
-import { MallState } from '../../../../models';
-import { authenticateUser, validateMallAccess } from '../../../../lib/user-auth';
+import { MallState } from '@/models';
+import { authenticateUser, validateMallAccess } from '@/lib/user-auth';
 
 export async function POST(request) {
   try {

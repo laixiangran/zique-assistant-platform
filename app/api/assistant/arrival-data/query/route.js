@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { Op } from 'sequelize';
-import { ArrivalDataDetail, CostSettlement } from '../../../../models';
-import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
-import { createQueryOptimizer, FIELD_SELECTIONS } from '../../../../lib/query-optimizer';
+import { ArrivalDataDetail, CostSettlement } from '@/models';
+import {
+  authenticateUser,
+  buildMallWhereCondition,
+} from '@/lib/user-auth';
+import {
+  createQueryOptimizer,
+  FIELD_SELECTIONS,
+} from '@/lib/query-optimizer';
 
 export async function GET(request) {
   try {
@@ -35,22 +41,22 @@ export async function GET(request) {
       mallId,
       mallName
     );
-    
+
     if (regionName) {
       whereCondition.region_name = { [Op.like]: `%${regionName}%` };
     }
-    
+
     if (skuId) {
       const skuIds = skuId.split(',').map((id) => id.trim());
       whereCondition.sku_id = { [Op.in]: skuIds };
     }
-    
+
     if (accountingTimeStart && accountingTimeEnd) {
       whereCondition.accounting_time = {
         [Op.between]: [
           `${accountingTimeStart} 00:00:00`,
-          `${accountingTimeEnd} 23:59:59`
-        ]
+          `${accountingTimeEnd} 23:59:59`,
+        ],
       };
     }
 
@@ -58,7 +64,7 @@ export async function GET(request) {
     const queryOptimizer = createQueryOptimizer({
       enableCache: true,
       cacheTimeout: 300,
-      selectFields: FIELD_SELECTIONS.ARRIVAL_DATA
+      selectFields: FIELD_SELECTIONS.ARRIVAL_DATA,
     });
 
     // 执行优化查询
@@ -69,11 +75,11 @@ export async function GET(request) {
         pageIndex,
         pageSize,
         sortField: sortField || 'accounting_time',
-        sortOrder: (sortOrder || 'DESC').toUpperCase()
+        sortOrder: (sortOrder || 'DESC').toUpperCase(),
       },
       'arrival_data'
     );
-    
+
     const { total, data: results } = queryResult;
 
     // 获取所有唯一的sku_id
@@ -84,10 +90,10 @@ export async function GET(request) {
     if (skuIds.length > 0) {
       const costSettlementResults = await CostSettlement.findAll({
         where: {
-          sku_id: { [Op.in]: skuIds }
+          sku_id: { [Op.in]: skuIds },
         },
         attributes: ['sku_id', 'product_name', 'cost_price'],
-        raw: true
+        raw: true,
       });
 
       // 创建映射以便快速查找
@@ -123,7 +129,7 @@ export async function GET(request) {
       total: queryResult.total,
       pageIndex: queryResult.pageIndex,
       pageSize: queryResult.pageSize,
-      totalPages: queryResult.totalPages
+      totalPages: queryResult.totalPages,
     });
   } catch (error) {
     return NextResponse.json(

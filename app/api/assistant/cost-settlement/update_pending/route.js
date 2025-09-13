@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Op } from 'sequelize';
-import { PendingSettlementDetail, CostSettlement } from '../../../../models';
-import { USDToCNY } from '../../../../lib/utils';
+import { PendingSettlementDetail, CostSettlement } from '@/models';
+import { USDToCNY } from '@/lib/utils';
 import dayjs from 'dayjs';
 
 export async function POST(request) {

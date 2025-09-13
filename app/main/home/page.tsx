@@ -19,7 +19,7 @@ import {
   CopyOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons';
-import { mallsAPI, subAccountsAPI, invitationsAPI } from '../../services';
+import { mallsAPI, subAccountsAPI, invitationsAPI } from '@/app/services';
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
-import { ArrivalDataDetail } from '../../../../models';
+import { ArrivalDataDetail } from '@/models';
 
 export async function POST(request) {
   try {
@@ -8,12 +8,12 @@ export async function POST(request) {
     const results = await ArrivalDataDetail.findAll({
       where: {
         mall_id: mallId,
-        region_code: regionCode
+        region_code: regionCode,
       },
       attributes: ['accounting_time'],
       order: [['accounting_time', 'DESC']],
       limit: 1,
-      raw: true
+      raw: true,
     });
 
     // 将昨天作为结束时间

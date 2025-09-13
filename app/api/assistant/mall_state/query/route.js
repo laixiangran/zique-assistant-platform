@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
-import { MallState } from '../../../../models';
+import { MallState } from '@/models';
 import { Op } from 'sequelize';
-import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
-import { createQueryOptimizer, FIELD_SELECTIONS } from '../../../../lib/query-optimizer';
+import { authenticateUser, buildMallWhereCondition } from '@/lib/user-auth';
+import { createQueryOptimizer, FIELD_SELECTIONS } from '@/lib/query-optimizer';
 
 export async function GET(request) {
   try {

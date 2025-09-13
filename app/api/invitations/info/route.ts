@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User, Invitation, InvitationReward } from '../../../../models';
-import { authenticateRequest } from '../../../../lib/utils';
+import { User, Invitation, InvitationReward } from '@/models';
+import { authenticateRequest } from '@/lib/utils';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';

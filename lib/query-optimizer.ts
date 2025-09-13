@@ -21,7 +21,7 @@ const DEFAULT_CONFIG: QueryOptimizerConfig = {
   cacheTimeout: 300, // 5分钟
   enableCursorPagination: true,
   defaultPageSize: 20,
-  maxPageSize: 100
+  maxPageSize: 100,
 };
 
 /**
@@ -78,8 +78,12 @@ export class QueryOptimizer {
     additionalOptions: Partial<FindOptions> = {}
   ): Promise<QueryResult<T>> {
     // 生成缓存键
-    const cacheKey = this.generateCacheKey(tableName, whereCondition, paginationParams);
-    
+    const cacheKey = this.generateCacheKey(
+      tableName,
+      whereCondition,
+      paginationParams
+    );
+
     // 尝试从缓存获取
     if (this.config.enableCache) {
       const cached = await getCache<QueryResult<T>>(cacheKey);
@@ -91,10 +95,23 @@ export class QueryOptimizer {
     let result: QueryResult<T>;
 
     // 判断使用游标分页还是传统分页
-    if (this.isCursorPagination(paginationParams) && this.config.enableCursorPagination) {
-      result = await this.executeCursorQuery(model, whereCondition, paginationParams, additionalOptions);
+    if (
+      this.isCursorPagination(paginationParams) &&
+      this.config.enableCursorPagination
+    ) {
+      result = await this.executeCursorQuery(
+        model,
+        whereCondition,
+        paginationParams,
+        additionalOptions
+      );
     } else {
-      result = await this.executeOffsetQuery(model, whereCondition, paginationParams as OffsetPaginationParams, additionalOptions);
+      result = await this.executeOffsetQuery(
+        model,
+        whereCondition,
+        paginationParams as OffsetPaginationParams,
+        additionalOptions
+      );
     }
 
     // 缓存结果
@@ -114,7 +131,10 @@ export class QueryOptimizer {
     params: CursorPaginationParams,
     additionalOptions: Partial<FindOptions>
   ): Promise<QueryResult<T>> {
-    const limit = Math.min(params.limit || this.config.defaultPageSize!, this.config.maxPageSize!);
+    const limit = Math.min(
+      params.limit || this.config.defaultPageSize!,
+      this.config.maxPageSize!
+    );
     const sortField = params.sortField || 'id';
     const sortOrder = params.sortOrder || 'DESC';
 
@@ -130,7 +150,7 @@ export class QueryOptimizer {
       where: cursorCondition,
       limit: limit + 1,
       order: [[sortField, sortOrder]],
-      ...additionalOptions
+      ...additionalOptions,
     };
 
     // 添加字段选择
@@ -139,15 +159,18 @@ export class QueryOptimizer {
     }
 
     const results = await model.findAll(queryOptions);
-    
+
     const hasMore = results.length > limit;
     const data = hasMore ? results.slice(0, limit) : results;
-    const nextCursor = hasMore && data.length > 0 ? (data[data.length - 1] as any)[sortField] : undefined;
+    const nextCursor =
+      hasMore && data.length > 0
+        ? (data[data.length - 1] as any)[sortField]
+        : undefined;
 
     return {
       data,
       hasMore,
-      nextCursor
+      nextCursor,
     };
   }
 
@@ -161,7 +184,10 @@ export class QueryOptimizer {
     additionalOptions: Partial<FindOptions>
   ): Promise<QueryResult<T>> {
     const pageIndex = params.pageIndex || 1;
-    const pageSize = Math.min(params.pageSize || this.config.defaultPageSize!, this.config.maxPageSize!);
+    const pageSize = Math.min(
+      params.pageSize || this.config.defaultPageSize!,
+      this.config.maxPageSize!
+    );
     const sortField = params.sortField || 'updated_time';
     const sortOrder = params.sortOrder || 'DESC';
     const offset = (pageIndex - 1) * pageSize;
@@ -171,7 +197,7 @@ export class QueryOptimizer {
       limit: pageSize,
       offset,
       order: [[sortField, sortOrder]],
-      ...additionalOptions
+      ...additionalOptions,
     };
 
     // 添加字段选择
@@ -187,7 +213,7 @@ export class QueryOptimizer {
       total: result.count,
       pageIndex,
       pageSize,
-      totalPages
+      totalPages,
     };
   }
 
@@ -195,7 +221,10 @@ export class QueryOptimizer {
    * 判断是否为游标分页
    */
   private isCursorPagination(params: any): params is CursorPaginationParams {
-    return 'cursor' in params || (!('pageIndex' in params) && !('pageSize' in params));
+    return (
+      'cursor' in params ||
+      (!('pageIndex' in params) && !('pageSize' in params))
+    );
   }
 
   /**
@@ -210,7 +239,7 @@ export class QueryOptimizer {
       table: tableName,
       where: whereCondition,
       pagination: paginationParams,
-      fields: this.config.selectFields
+      fields: this.config.selectFields,
     };
     return generateQueryCacheKey('optimized_query', params);
   }
@@ -234,7 +263,9 @@ export class QueryOptimizer {
 /**
  * 创建查询优化器实例
  */
-export function createQueryOptimizer(config?: Partial<QueryOptimizerConfig>): QueryOptimizer {
+export function createQueryOptimizer(
+  config?: Partial<QueryOptimizerConfig>
+): QueryOptimizer {
   return new QueryOptimizer(config);
 }
 
@@ -243,8 +274,30 @@ export function createQueryOptimizer(config?: Partial<QueryOptimizerConfig>): Qu
  */
 export const FIELD_SELECTIONS = {
   MALL_STATE: ['id', 'mall_id', 'mall_name', 'region_name', 'updated_time'],
-  ARRIVAL_DATA: ['id', 'mall_id', 'sku_id', 'accounting_time', 'arrival_quantity', 'updated_time'],
-  COST_SETTLEMENT: ['id', 'mall_id', 'sku_id', 'product_name', 'cost_price', 'updated_time'],
-  PENDING_SETTLEMENT: ['id', 'mall_id', 'sku_id', 'pending_amount', 'updated_time'],
-  SALES_DETAILS: ['id', 'mall_id', 'sku_id', 'sales_amount', 'sales_quantity', 'updated_time']
+  ARRIVAL_DATA: [
+    'id',
+    'mall_id',
+    'sku_id',
+    'accounting_time',
+    'sales_volume',
+    'sales_amount',
+    'updated_time',
+  ],
+  COST_SETTLEMENT: [
+    'id',
+    'mall_id',
+    'sku_id',
+    'product_name',
+    'cost_price',
+    'updated_time',
+  ],
+  PENDING_SETTLEMENT: [
+    'id',
+    'mall_id',
+    'sku_id',
+    'sales_volume',
+    'sales_amount',
+    'updated_time',
+  ],
+  SALES_DETAILS: ['id', 'mall_id', 'sku_id', 'updated_time'],
 };

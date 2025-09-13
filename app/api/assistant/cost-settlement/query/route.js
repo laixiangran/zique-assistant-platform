@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import dayjs from 'dayjs';
 import { Op } from 'sequelize';
-import { CostSettlement } from '../../../../models';
-import { authenticateUser, buildMallWhereCondition } from '../../../../lib/user-auth';
-import { createQueryOptimizer, FIELD_SELECTIONS } from '../../../../lib/query-optimizer';
+import { CostSettlement } from '@/models';
+import { authenticateUser, buildMallWhereCondition } from '@/lib/user-auth';
+import { createQueryOptimizer, FIELD_SELECTIONS } from '@/lib/query-optimizer';
 
 export async function GET(request) {
   try {
@@ -32,26 +32,20 @@ export async function GET(request) {
       mallId,
       mallName
     );
-    
+
     if (skuId) {
       const skuIdList = skuId.split(',').map((id) => id.trim());
       whereCondition.sku_id = { [Op.in]: skuIdList };
     }
-    
+
     // 添加成本状态查询条件
     if (costStatus === 'completed') {
       whereCondition.cost_price = {
-        [Op.and]: [
-          { [Op.ne]: null },
-          { [Op.ne]: '' }
-        ]
+        [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }],
       };
     } else if (costStatus === 'incomplete') {
       whereCondition.cost_price = {
-        [Op.or]: [
-          { [Op.is]: null },
-          { [Op.eq]: '' }
-        ]
+        [Op.or]: [{ [Op.is]: null }, { [Op.eq]: '' }],
       };
     }
 
@@ -59,7 +53,7 @@ export async function GET(request) {
     const queryOptimizer = createQueryOptimizer({
       enableCache: true,
       cacheTimeout: 300,
-      selectFields: FIELD_SELECTIONS.COST_SETTLEMENT
+      selectFields: FIELD_SELECTIONS.COST_SETTLEMENT,
     });
 
     // 执行优化查询
@@ -70,11 +64,11 @@ export async function GET(request) {
         pageIndex,
         pageSize,
         sortField: sortField || 'updated_time',
-        sortOrder: (sortOrder || 'DESC').toUpperCase()
+        sortOrder: (sortOrder || 'DESC').toUpperCase(),
       },
       'cost_settlement'
     );
-    
+
     const { total, data: results } = queryResult;
 
     // 转换时间格式
@@ -96,7 +90,7 @@ export async function GET(request) {
       total: queryResult.total,
       pageIndex: queryResult.pageIndex,
       pageSize: queryResult.pageSize,
-      totalPages: queryResult.totalPages
+      totalPages: queryResult.totalPages,
     });
   } catch (error) {
     return NextResponse.json(

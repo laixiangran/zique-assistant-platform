@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { Op } from 'sequelize';
-import { ArrivalDataDetail, CostSettlement } from '../../../../models';
-import { USDToCNY } from '../../../../lib/utils';
-import { authenticateUser } from '../../../../lib/user-auth';
+import { ArrivalDataDetail, CostSettlement } from '@/models';
+import { USDToCNY } from '@/lib/utils';
+import { authenticateUser } from '@/lib/user-auth';
 import dayjs from 'dayjs';
 
 export async function POST(request) {

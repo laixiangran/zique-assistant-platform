@@ -26,10 +26,15 @@ import {
   DashboardOutlined,
   CrownOutlined,
   AppstoreOutlined,
+  DatabaseOutlined,
+  FileTextOutlined,
+  DollarOutlined,
+  ClockCircleOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { authAPI, userPackagesAPI } from '../services';
-import logo from '../../public/logo.png';
+import { authAPI, userPackagesAPI } from '@/app/services';
+import logo from '@/public/logo.png';
 
 const { Header, Sider, Content } = Layout;
 
@@ -59,9 +64,14 @@ export default function mainLayout({
   // 根据当前路径获取选中的菜单项
   const getSelectedKey = () => {
     if (pathname.startsWith('/main/home')) return ['home'];
+    if (pathname.startsWith('/main/invitations')) return ['invitations'];
+    if (pathname.startsWith('/main/arrivalData')) return ['arrivalData'];
+    if (pathname.startsWith('/main/costSettlement')) return ['costSettlement'];
+    if (pathname.startsWith('/main/pendingSettlement'))
+      return ['pendingSettlement'];
     if (pathname.startsWith('/main/malls')) return ['malls'];
     if (pathname.startsWith('/main/teams')) return ['teams'];
-    if (pathname.startsWith('/main/invitations')) return ['invitations'];
+    if (pathname.startsWith('/main/salesDetails')) return ['salesDetails'];
     return ['home'];
   };
 
@@ -160,14 +170,34 @@ export default function mainLayout({
     },
   ];
 
-  // 根据用户类型生成菜单项
-  const sideMenuItems: MenuProps['items'] = [
+  // 侧边菜单项
+  const sideMenuItems = [
     {
       key: 'home',
       icon: <DashboardOutlined />,
       label: '首页',
     },
-    // 只有主账户才显示团队管理和邀请奖励
+    {
+      key: 'costSettlement',
+      icon: <DollarOutlined />,
+      label: '成本结算明细',
+    },
+    {
+      key: 'pendingSettlement',
+      icon: <ClockCircleOutlined />,
+      label: '待结算明细',
+    },
+    {
+      key: 'arrivalData',
+      icon: <FileTextOutlined />,
+      label: '结算到账明细',
+    },
+    {
+      key: 'salesDetails',
+      icon: <BarChartOutlined />,
+      label: '商品销售明细',
+    },
+    // 只有主账户才显示店铺管理
     ...(userInfo?.accountType === 'main'
       ? [
           {
@@ -297,6 +327,14 @@ export default function mainLayout({
                   router.push('/main/teams');
                 } else if (key === 'invitations') {
                   router.push('/main/invitations');
+                } else if (key === 'arrivalData') {
+                  router.push('/main/arrivalData');
+                } else if (key === 'costSettlement') {
+                  router.push('/main/costSettlement');
+                } else if (key === 'pendingSettlement') {
+                  router.push('/main/pendingSettlement');
+                } else if (key === 'salesDetails') {
+                  router.push('/main/salesDetails');
                 }
               }}
             />

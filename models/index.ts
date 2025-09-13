@@ -1,4 +1,4 @@
-import sequelize from '../lib/database';
+import sequelize from '@/lib/database';
 import User from './User';
 import Admin from './Admin';
 import SubAccount from './SubAccount';

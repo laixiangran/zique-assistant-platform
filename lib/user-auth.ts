@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest, JWTPayload } from './utils';
-import { UserMallBinding } from '../models';
+import { UserMallBinding } from '@/models';
 import { Op } from 'sequelize';
 
 export interface UserAuthResult {

@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../lib/database';
+import sequelize from '@/lib/database';
 
 interface PendingSettlementDetailAttributes {
   id: number;

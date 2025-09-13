@@ -16,15 +16,17 @@ apiClient.interceptors.request.use(
   (config) => {
     // 根据请求路径智能选择token
     let token: string | null = null;
-    
+
     // 如果是管理员相关的API，使用admin_token
     if (config.url && config.url.startsWith('/admin')) {
-      token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+      token =
+        localStorage.getItem('admin_token') ||
+        sessionStorage.getItem('admin_token');
     } else {
       // 普通用户API使用普通token
       token = localStorage.getItem('token') || sessionStorage.getItem('token');
     }
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -60,24 +62,24 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    // 统一错误处理
-    console.error('API Error:', error);
+    console.error(error);
+    let errorMsg =
+      error.error ||
+      error.errorMessage ||
+      error.message ||
+      '请求失败，请稍后重试';
 
     // 处理HTTP错误
     if (error.response) {
       const { data } = error.response;
-      if (data && data.message) {
-        console.error(data);
-        message.error(data.message || '请求失败，请稍后重试');
-        throw new Error(data.message);
-      }
+      errorMsg =
+        data.error ||
+        data.errorMessage ||
+        data.message ||
+        '请求失败，请稍后重试';
     }
-
-    // 处理网络错误或其他错误
-    const errorMessage = error.message || '请求失败，请稍后重试';
-    console.error(error);
-    message.error(errorMessage);
-    throw new Error(errorMessage);
+    message.error(errorMsg);
+    throw new Error(errorMsg);
   }
 );
 
@@ -395,6 +397,143 @@ export const pluginVersionsAPI = {
     userAgent?: string;
     ip?: string;
   }) => request.post('/plugin-versions/download', data),
+};
+
+// 数据管理相关API
+export const dataManagementAPI = {
+  // 到货数据
+  arrivalData: {
+    getList: (
+      params: {
+        pageIndex?: number;
+        pageSize?: number;
+        mall_name?: string;
+        region_name?: string;
+        sku_id?: string;
+        sku_code?: string;
+        goods_name?: string;
+        accounting_time_start?: string;
+        accounting_time_end?: string;
+        sortField?: string;
+        sortOrder?: string;
+      } = {},
+      signal?: AbortSignal
+    ) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+      const url = `/assistant/arrival-data/query${
+        searchParams.toString() ? `?${searchParams.toString()}` : ''
+      }`;
+      return request.get(url, { signal });
+    },
+    updatePending: () => request.post('/assistant/arrival-data/update-pending'),
+    updateArrival: () => request.post('/assistant/arrival-data/update-arrival'),
+  },
+
+  // 成本结算
+  costSettlement: {
+    getList: (
+      params: {
+        pageIndex?: number;
+        pageSize?: number;
+        mall_name?: string;
+        region_name?: string;
+        sku_id?: string;
+        sku_code?: string;
+        goods_name?: string;
+        cost_status?: string;
+        sortField?: string;
+        sortOrder?: string;
+      } = {},
+      signal?: AbortSignal
+    ) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+      const url = `/assistant/cost-settlement/query${
+        searchParams.toString() ? `?${searchParams.toString()}` : ''
+      }`;
+      return request.get(url, { signal });
+    },
+    updateRecord: (data: any) =>
+      request.post('/assistant/cost-settlement/update', data),
+    updateCostPrice: (data: {
+      sku_id: string;
+      product_name: string;
+      cost_price: number;
+    }) => request.post('/assistant/cost-settlement/update_cost_price', data),
+    updatePending: () =>
+      request.post('/assistant/cost-settlement/update_pending'),
+    updateArrival: () =>
+      request.post('/assistant/cost-settlement/update_arrival'),
+    settle: (skuId: string) =>
+      request.post('/assistant/cost-settlement/settle', { sku_id: skuId }),
+  },
+
+  // 待结算
+  pendingSettlement: {
+    getList: (
+      params: {
+        pageIndex?: number;
+        pageSize?: number;
+        mall_name?: string;
+        region_name?: string;
+        sku_id?: string;
+        sku_code?: string;
+        goods_name?: string;
+        sortField?: string;
+        sortOrder?: string;
+      } = {},
+      signal?: AbortSignal
+    ) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+      const url = `/assistant/pending-settlement/query${
+        searchParams.toString() ? `?${searchParams.toString()}` : ''
+      }`;
+      return request.get(url, { signal });
+    },
+    settle: (skuId: string) =>
+      request.post('/assistant/pending-settlement/settle', { sku_id: skuId }),
+  },
+
+  // 销售明细
+  salesDetails: {
+    getList: (
+      params: {
+        pageIndex?: number;
+        pageSize?: number;
+        mall_name?: string;
+        sku_id?: string;
+        cost_status?: string;
+        sortField?: string;
+        sortOrder?: string;
+      } = {},
+      signal?: AbortSignal
+    ) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+      const url = `/assistant/sales-details/query${
+        searchParams.toString() ? `?${searchParams.toString()}` : ''
+      }`;
+      return request.get(url, { signal });
+    },
+  },
 };
 
 export default apiClient;
