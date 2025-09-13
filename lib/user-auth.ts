@@ -63,7 +63,11 @@ export async function authenticateUser(request: NextRequest): Promise<any> {
       }
 
       // 插件模式下，允许访问指定的店铺
-      return successResponse({ isPluginMode: true, allowedMallIds: [mallId] });
+      return successResponse({
+        isPluginMode: true,
+        mallId,
+        allowedMallIds: [mallId],
+      });
     }
 
     // 普通模式：获取用户信息
