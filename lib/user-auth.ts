@@ -1,48 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest, JWTPayload, errorResponse } from './utils';
+import { getUserFromRequest, successResponse, errorResponse } from './utils';
 import { UserMallBinding } from '@/models';
 import { Op } from 'sequelize';
-import { temuAPI } from '@/app/services';
-
-export interface UserAuthResult {
-  success: boolean;
-  error?: string;
-  user?: JWTPayload;
-  allowedMallIds?: string[];
-  response?: NextResponse;
-  isPluginMode?: boolean;
-}
 
 /**
  * 验证Temu API访问权限
  */
 export async function validateTemuApiAccess(
-  temuCookies: string
-): Promise<{ success: boolean; error?: string }> {
+  temuCookie: string
+): Promise<{ success: boolean; errorCode?: string; errorMsg?: string }> {
   try {
-    const data = await temuAPI.validateUserInfo(temuCookies);
+    const res = await fetch(
+      'https://agentseller.temu.com/api/seller/auth/userInfo',
+      {
+        headers: {
+          'content-type': 'application/json',
+          cookie: temuCookie,
+        },
+        body: '{}',
+        method: 'POST',
+      }
+    );
+    const data = await res.json();
     if (data.success) {
-      return { success: true };
+      return successResponse({}, 'Temu 登录验证成功');
     } else {
-      return {
-        success: false,
-        error: 'Temu API验证失败',
-      };
+      return errorResponse('Temu 登录验证失败', 'TEMU_LOGIN_ERROR');
     }
   } catch (error) {
-    return {
-      success: false,
-      error: 'Temu API验证失败',
-    };
+    return errorResponse('Temu 登录验证失败', 'TEMU_LOGIN_ERROR');
   }
 }
 
 /**
  * 验证用户身份并获取绑定的店铺列表
  */
-export async function authenticateUser(
-  request: NextRequest
-): Promise<UserAuthResult> {
+export async function authenticateUser(request: NextRequest): Promise<any> {
   try {
     // 检查是否为插件模式
     const endParam = request.headers.get('zique-end');
@@ -50,33 +43,10 @@ export async function authenticateUser(
     const mallId = request.headers.get('mall_id') || '';
 
     // 插件模式验证
-    if (endParam === 'plugin') {
+    if (endParam === 'zique-assistant') {
       const temuValidation = await validateTemuApiAccess(temuCookie);
       if (!temuValidation.success) {
-        return {
-          success: false,
-          error: `Temu登录验证失败: ${
-            temuValidation.error || '请检查Temu登录状态'
-          }`,
-          response: NextResponse.json(
-            errorResponse(`Temu登录验证失败: ${
-              temuValidation.error || '请检查Temu登录状态'
-            }`),
-            { status: 403 }
-          ),
-        };
-      }
-
-      // 验证mall_id是否有绑定关系
-      if (!mallId) {
-        return {
-          success: false,
-          error: '缺少mall_id参数',
-          response: NextResponse.json(
-            errorResponse('缺少mall_id参数'),
-            { status: 400 }
-          ),
-        };
+        return temuValidation;
       }
 
       const mallBinding = await UserMallBinding.findOne({
@@ -86,36 +56,21 @@ export async function authenticateUser(
       });
 
       if (!mallBinding) {
-        return {
-          success: false,
-          error: `店铺绑定验证失败: 店铺ID ${mallId} 未找到绑定关系，请先在系统中绑定该店铺`,
-          response: NextResponse.json(
-            errorResponse(`店铺绑定验证失败: 店铺ID ${mallId} 未找到绑定关系，请先在系统中绑定该店铺`),
-            { status: 404 }
-          ),
-        };
+        return errorResponse(
+          `店铺绑定验证失败: 店铺ID ${mallId} 未找到绑定关系，请先在系统中绑定该店铺`,
+          'MALL_NOT_BINDING'
+        );
       }
 
       // 插件模式下，允许访问指定的店铺
-      return {
-        success: true,
-        isPluginMode: true,
-        allowedMallIds: [mallId],
-      };
+      return successResponse({ isPluginMode: true, allowedMallIds: [mallId] });
     }
 
     // 普通模式：获取用户信息
     const user = getUserFromRequest(request);
 
     if (!user) {
-      return {
-        success: false,
-        error: '用户未登录',
-        response: NextResponse.json(
-          errorResponse('用户未登录'),
-          { status: 401 }
-        ),
-      };
+      return errorResponse('用户未登录', 'USER_NOT_LOGIN');
     }
 
     // 获取用户绑定的店铺列表
@@ -132,32 +87,17 @@ export async function authenticateUser(
     );
 
     if (allowedMallIds.length === 0) {
-      return {
-        success: false,
-        error: '用户未绑定任何店铺',
-        response: NextResponse.json(
-          errorResponse('用户未绑定任何店铺'),
-          { status: 403 }
-        ),
-      };
+      return errorResponse('用户未绑定任何店铺', 'USER_NOT_BINDING_MALL');
     }
 
-    return {
-      success: true,
+    return successResponse({
       user,
       allowedMallIds,
       isPluginMode: false,
-    };
+    });
   } catch (error) {
     console.error('用户认证失败:', error);
-    return {
-      success: false,
-      error: '认证失败',
-      response: NextResponse.json(
-        errorResponse('认证失败'),
-        { status: 500 }
-      ),
-    };
+    return errorResponse('认证失败', 'AUTHENTICATION_FAILED');
   }
 }
 
@@ -165,37 +105,23 @@ export async function authenticateUser(
  * 验证用户是否有权限访问指定店铺
  */
 export async function validateMallAccess(
-  authResult: UserAuthResult,
+  authResult: any,
   mallId?: string,
   mallName?: string
 ): Promise<{ success: boolean; error?: string; response?: NextResponse }> {
   // 插件模式下，直接验证店铺ID是否匹配
-  if (authResult.isPluginMode) {
-    if (mallId && authResult.allowedMallIds?.includes(mallId)) {
-      return { success: true };
+  if (authResult?.data?.isPluginMode) {
+    if (mallId && authResult?.data?.allowedMallIds?.includes(`${mallId}`)) {
+      return successResponse(true);
     } else {
-      return {
-        success: false,
-        error: '插件模式下无权限访问指定店铺',
-        response: NextResponse.json(
-          errorResponse('插件模式下无权限访问指定店铺'),
-          { status: 403 }
-        ),
-      };
+      return errorResponse('插件模式下无权限访问指定店铺');
     }
   }
 
   // 普通模式验证
   const user = authResult.user;
   if (!user) {
-    return {
-      success: false,
-      error: '用户信息缺失',
-      response: NextResponse.json(
-        errorResponse('用户信息缺失'),
-        { status: 401 }
-      ),
-    };
+    return errorResponse('用户信息缺失');
   }
   try {
     // 获取用户绑定的店铺列表
@@ -220,39 +146,16 @@ export async function validateMallAccess(
 
     if (!mallBinding) {
       if (mallId || mallName) {
-        return {
-          success: false,
-          error: '用户无权限访问指定店铺',
-          response: NextResponse.json(
-            errorResponse('用户无权限访问指定店铺'),
-            { status: 403 }
-          ),
-        };
+        return errorResponse('用户无权限访问指定店铺');
       } else {
-        return {
-          success: false,
-          error: '用户未绑定任何店铺',
-          response: NextResponse.json(
-            errorResponse('用户未绑定任何店铺'),
-            { status: 403 }
-          ),
-        };
+        return errorResponse('用户未绑定任何店铺');
       }
     }
 
-    return {
-      success: true,
-    };
+    return successResponse(true);
   } catch (error) {
     console.error('店铺权限验证失败:', error);
-    return {
-      success: false,
-      error: '权限验证失败',
-      response: NextResponse.json(
-        errorResponse('权限验证失败'),
-        { status: 500 }
-      ),
-    };
+    return errorResponse('权限验证失败');
   }
 }
 
@@ -283,28 +186,28 @@ export async function getUserDefaultMallId(
  * 构建店铺权限查询条件
  */
 export async function buildMallWhereCondition(
-  authResult: UserAuthResult,
-  requestedMallId?: string,
-  requestedMallName?: string
+  authResult: any,
+  requestedMallId?: string | null,
+  requestedMallName?: string | null
 ): Promise<any> {
-  const allowedMallIds = authResult.allowedMallIds || [];
+  const allowedMallIds = authResult?.data?.allowedMallIds || [];
   const whereCondition: any = {
-    mall_id: { [Op.in]: allowedMallIds },
+    mallId: { [Op.in]: allowedMallIds },
   };
 
   // 如果指定了店铺ID，进一步限制
   if (requestedMallId) {
     if (allowedMallIds.includes(requestedMallId)) {
-      whereCondition.mall_id = requestedMallId;
+      whereCondition.mallId = requestedMallId;
     } else {
       // 如果请求的店铺ID不在允许列表中，返回一个不可能匹配的条件
-      whereCondition.mall_id = -1;
+      whereCondition.mallId = -1;
     }
   }
 
   // 如果指定了店铺名称，添加名称过滤
   if (requestedMallName) {
-    whereCondition.mall_name = { [Op.like]: `%${requestedMallName}%` };
+    whereCondition.mallName = { [Op.like]: `%${requestedMallName}%` };
   }
 
   return whereCondition;

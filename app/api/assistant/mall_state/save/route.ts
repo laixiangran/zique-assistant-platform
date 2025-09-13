@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
     // 用户权限验证
     const authResult = await authenticateUser(request);
     if (!authResult.success) {
-      return authResult.response;
+      return NextResponse.json(authResult, {
+        status: 403,
+      });
     }
 
     const body = await request.json();
@@ -24,26 +26,29 @@ export async function POST(request: NextRequest) {
     // 检查是否存在相同的 mallId 记录
     const existingRecord = await MallState.findAll({
       where: {
-        mallId: mallId
+        mallId: mallId,
       },
       attributes: ['id'],
-      raw: true
+      raw: true,
     });
 
     const createdTime = new Date();
     const updatedTime = createdTime;
     if (existingRecord.length > 0) {
       // 如果存在，则更新记录
-      await MallState.update({
-        mallName: mallName,
-        stateType: stateType,
-        state: state,
-        updatedTime: updatedTime
-      }, {
-        where: {
-          mallId: mallId
+      await MallState.update(
+        {
+          mallName: mallName,
+          stateType: stateType,
+          state: state,
+          updatedTime: updatedTime,
+        },
+        {
+          where: {
+            mallId: mallId,
+          },
         }
-      });
+      );
     } else {
       // 如果不存在，则插入新记录
       await MallState.create({
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest) {
         stateType: stateType,
         state: state,
         createdTime: createdTime,
-        updatedTime: updatedTime
+        updatedTime: updatedTime,
       });
     }
     return NextResponse.json(successResponse('店铺状态记录成功！'));

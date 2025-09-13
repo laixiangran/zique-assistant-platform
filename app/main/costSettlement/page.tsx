@@ -18,18 +18,18 @@ import { formatVolume, formatAmount, formatRate } from '@/lib/utils';
 
 interface CostSettlementRecord {
   id: number;
-  sku_id: string;
-  product_name: string;
-  cost_price: number;
-  mall_name: string;
-  cost_status: string;
+  skuId: string;
+  productName: string;
+  costPrice: number;
+  mallName: string;
+  costStatus: string;
   [key: string]: any;
 }
 
 interface FilterValues {
-  mall_name?: string;
-  sku_id?: string;
-  cost_status?: string;
+  mallName?: string;
+  skuId?: string;
+  costStatus?: string;
 }
 
 export default function CostSettlement() {
@@ -48,9 +48,9 @@ export default function CostSettlement() {
   const [form] = Form.useForm();
   const [form2] = Form.useForm();
   const [filters, setFilters] = useState({
-    mall_name: '',
-    sku_id: '',
-    cost_status: '', // 添加成本状态筛选
+    mallName: '',
+    skuId: '',
+    costStatus: '', // 添加成本状态筛选
   });
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState('');
@@ -81,8 +81,8 @@ export default function CostSettlement() {
   const handleEdit = (record: CostSettlementRecord) => {
     setEditingRecord(record);
     form2.setFieldsValue({
-      product_name: record.product_name,
-      cost_price: +record.cost_price,
+      productName: record.productName,
+      costPrice: +record.costPrice,
     });
     setEditModalVisible(true);
   };
@@ -90,9 +90,9 @@ export default function CostSettlement() {
   const handleSave = async (values: any) => {
     try {
       const response = await dataManagementAPI.costSettlement.updateCostPrice({
-        sku_id: editingRecord!.sku_id,
-        product_name: values.product_name,
-        cost_price: parseFloat(values.cost_price),
+        sku_id: editingRecord!.skuId,
+        product_name: values.productName,
+        cost_price: parseFloat(values.costPrice),
       });
       const result = response.data;
 
@@ -122,9 +122,9 @@ export default function CostSettlement() {
   const handleFilter = () => {
     const values = form.getFieldsValue();
     setFilters({
-      mall_name: values.mall_name || '',
-      sku_id: values.sku_id || '',
-      cost_status: values.cost_status || '',
+      mallName: values.mallName || '',
+      skuId: values.skuId || '',
+      costStatus: values.costStatus || '',
     });
     setPageIndex(1); // 重置到第一页
   };
@@ -151,9 +151,9 @@ export default function CostSettlement() {
   const handleReset = () => {
     form.resetFields();
     setFilters({
-      mall_name: '',
-      sku_id: '',
-      cost_status: '',
+      mallName: '',
+      skuId: '',
+      costStatus: '',
     });
     setPageIndex(1);
   };
@@ -176,10 +176,10 @@ export default function CostSettlement() {
       fixed: 'left' as const,
       render: (text: any, record: CostSettlementRecord) => (
         <div>
-          <div>{record.mall_name}</div>
-          <Paragraph copyable={{ text: record.mall_id }}>
+          <div>{record.mallName}</div>
+          <Paragraph copyable={{ text: record.mallId }}>
             <span style={{ fontSize: '12px', color: '#666' }}>
-              {record.mall_id}
+              {record.mallId}
             </span>
           </Paragraph>
         </div>
@@ -187,8 +187,8 @@ export default function CostSettlement() {
     },
     {
       title: '货品名称',
-      dataIndex: 'goods_name',
-      key: 'goods_name',
+      dataIndex: 'goodsName',
+      key: 'goodsName',
       width: 300,
       fixed: 'left' as const,
       render: (value: string) => (
@@ -204,139 +204,139 @@ export default function CostSettlement() {
     },
     {
       title: 'SKU ID',
-      dataIndex: 'sku_id',
-      key: 'sku_id',
+      dataIndex: 'skuId',
+      key: 'skuId',
       width: 150,
       fixed: 'left' as const,
       render: (text: string) => <Paragraph copyable>{text}</Paragraph>,
     },
     {
       title: 'SKU货号',
-      dataIndex: 'sku_code',
-      key: 'sku_code',
+      dataIndex: 'skuCode',
+      key: 'skuCode',
       width: 150,
       render: (value: any) => formatVolume(value),
     },
     {
       title: 'SKU属性',
-      dataIndex: 'sku_property',
-      key: 'sku_property',
+      dataIndex: 'skuProperty',
+      key: 'skuProperty',
       width: 150,
       render: (value: any) => formatVolume(value),
     },
     {
       title: '产品名称',
-      dataIndex: 'product_name',
-      key: 'product_name',
+      dataIndex: 'productName',
+      key: 'productName',
       width: 150,
       render: (value: any) => formatVolume(value),
     },
     {
       title: '产品成本',
-      dataIndex: 'cost_price',
-      key: 'cost_price',
+      dataIndex: 'costPrice',
+      key: 'costPrice',
       width: 120,
       sorter: true,
       render: (value: number) => formatAmount(value),
     },
     {
       title: '待结算均价',
-      dataIndex: 'pending_average_price',
-      key: 'pending_average_price',
+      dataIndex: 'pendingAveragePrice',
+      key: 'pendingAveragePrice',
       width: 120,
       sorter: true,
       render: (value: number) => formatAmount(value),
     },
     {
       title: '待结算销量',
-      dataIndex: 'pending_sales_volume',
-      key: 'pending_sales_volume',
+      dataIndex: 'pendingSalesVolume',
+      key: 'pendingSalesVolume',
       width: 120,
       sorter: true,
       render: (value: number) => formatVolume(value),
     },
     {
       title: '待结算销售额',
-      dataIndex: 'pending_sales_amount',
-      key: 'pending_sales_amount',
+      dataIndex: 'pendingSalesAmount',
+      key: 'pendingSalesAmount',
       width: 150,
       sorter: true,
       render: (value: number) => formatAmount(value),
     },
     {
       title: '待结算毛利',
-      dataIndex: 'pending_gross_profit',
-      key: 'pending_gross_profit',
+      dataIndex: 'pendingGrossProfit',
+      key: 'pendingGrossProfit',
       width: 150,
       sorter: true,
       render: (value: number) => formatAmount(value),
     },
     {
       title: '待结算毛利率',
-      dataIndex: 'pending_profit_rate',
-      key: 'pending_profit_rate',
+      dataIndex: 'pendingProfitRate',
+      key: 'pendingProfitRate',
       width: 150,
       sorter: true,
       render: (value: number) => formatRate(value),
     },
     {
       title: '待结算更新时间',
-      dataIndex: 'pending_updated_time',
-      key: 'pending_updated_time',
+      dataIndex: 'pendingUpdatedTime',
+      key: 'pendingUpdatedTime',
       sorter: true,
       width: 150,
     },
     {
       title: '30天到账均价',
-      dataIndex: 'd30_arrival_average_price',
-      key: 'd30_arrival_average_price',
+      dataIndex: 'd30ArrivalAveragePrice',
+      key: 'd30ArrivalAveragePrice',
       width: 150,
       sorter: true,
       render: (value: number) => formatAmount(value),
     },
     {
       title: '30天到账销量',
-      dataIndex: 'd30_arrival_sales_volume',
-      key: 'd30_arrival_sales_volume',
+      dataIndex: 'd30ArrivalSalesVolume',
+      key: 'd30ArrivalSalesVolume',
       width: 150,
       sorter: true,
       render: (value: number) => formatVolume(value),
     },
     {
       title: '30天到账销售额',
-      dataIndex: 'd30_arrival_sales_amount',
-      key: 'd30_arrival_sales_amount',
+      dataIndex: 'd30ArrivalSalesAmount',
+      key: 'd30ArrivalSalesAmount',
       width: 160,
       sorter: true,
       render: (value: number) => formatAmount(value),
     },
     {
       title: '30天到账毛利',
-      dataIndex: 'd30_arrival_gross_profit',
-      key: 'd30_arrival_gross_profit',
+      dataIndex: 'd30ArrivalGrossProfit',
+      key: 'd30ArrivalGrossProfit',
       width: 160,
       sorter: true,
       render: (value: number) => formatAmount(value),
     },
     {
       title: '30天到账毛利率',
-      dataIndex: 'd30_arrival_profit_rate',
-      key: 'd30_arrival_profit_rate',
+      dataIndex: 'd30ArrivalProfitRate',
+      key: 'd30ArrivalProfitRate',
       width: 160,
       sorter: true,
       render: (value: number) => formatRate(value),
     },
     {
       title: '30天到账更新时间',
-      dataIndex: 'arrival_updated_time',
-      key: 'arrival_updated_time',
+      dataIndex: 'arrivalUpdatedTime',
+      key: 'arrivalUpdatedTime',
       sorter: true,
       width: 170,
     },
     {
       title: '更新时间',
-      dataIndex: 'updated_time',
-      key: 'updated_time',
+      dataIndex: 'updatedTime',
+      key: 'updatedTime',
       sorter: true,
       width: 120,
     },
@@ -387,13 +387,13 @@ export default function CostSettlement() {
         {/* 添加筛选表单 */}
         <div style={{ marginBottom: 16 }}>
           <Form form={form} layout='inline' onFinish={handleFilter}>
-            <Form.Item label='店铺名称' name='mall_name'>
+            <Form.Item label='店铺名称' name='mallName'>
               <Input placeholder='请输入店铺名称' />
             </Form.Item>
-            <Form.Item label='SKU ID' name='sku_id'>
+            <Form.Item label='SKU ID' name='skuId'>
               <Input placeholder='请输入SKU ID，多个用逗号分隔' />
             </Form.Item>
-            <Form.Item label='成本状态' name='cost_status'>
+            <Form.Item label='成本状态' name='costStatus'>
               <Select
                 style={{ width: 120 }}
                 placeholder='请选择状态'
@@ -481,14 +481,14 @@ export default function CostSettlement() {
         <Form form={form2} layout='vertical' onFinish={handleSave}>
           <Form.Item
             label='产品名称'
-            name='product_name'
+            name='productName'
             rules={[{ required: true, message: '请输入产品名称' }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
             label='产品成本'
-            name='cost_price'
+            name='costPrice'
             rules={[{ required: true, message: '请输入产品成本价' }]}
           >
             <Input type='number' step='0.01' />

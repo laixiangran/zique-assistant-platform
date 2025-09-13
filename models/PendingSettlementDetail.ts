@@ -35,7 +35,10 @@ interface PendingSettlementDetailCreationAttributes
   > {}
 
 class PendingSettlementDetail
-  extends Model<PendingSettlementDetailAttributes, PendingSettlementDetailCreationAttributes>
+  extends Model<
+    PendingSettlementDetailAttributes,
+    PendingSettlementDetailCreationAttributes
+  >
   implements PendingSettlementDetailAttributes
 {
   public id!: number;
@@ -65,13 +68,13 @@ PendingSettlementDetail.init(
       type: DataTypes.STRING(255),
       allowNull: false,
       field: 'mall_id',
-      comment: '商城ID',
+      comment: '店铺ID',
     },
     mallName: {
       type: DataTypes.STRING(255),
       allowNull: false,
       field: 'mall_name',
-      comment: '商城名称',
+      comment: '店铺名称',
     },
     regionCode: {
       type: DataTypes.STRING(50),

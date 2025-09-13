@@ -25,11 +25,11 @@ export default function PendingSettlement() {
   const [total, setTotal] = useState(0);
   const [form] = Form.useForm();
   const [filters, setFilters] = useState<any>({
-    mall_name: '',
-    region_name: '',
-    sku_id: '',
-    sku_code: '',
-    goods_name: '',
+    mallName: '',
+    regionName: '',
+    skuId: '',
+    skuCode: '',
+    goodsName: '',
   });
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState('');
@@ -71,11 +71,11 @@ export default function PendingSettlement() {
   const handleFilter = () => {
     const values = form.getFieldsValue();
     setFilters({
-      mall_name: values.mall_name || '',
-      region_name: values.region_name || '',
-      sku_id: values.sku_id || '',
-      sku_code: values.sku_code || '',
-      goods_name: values.goods_name || '',
+      mallName: values.mallName || '',
+      regionName: values.regionName || '',
+      skuId: values.skuId || '',
+      skuCode: values.skuCode || '',
+      goodsName: values.goodsName || '',
     });
     setPageIndex(1); // 重置到第一页
   };
@@ -84,9 +84,9 @@ export default function PendingSettlement() {
   const handleReset = () => {
     form.resetFields();
     setFilters({
-      mall_name: '',
-      region_name: '',
-      sku_id: '',
+      mallName: '',
+      regionName: '',
+      skuId: '',
     });
     setPageIndex(1);
   };
@@ -96,7 +96,7 @@ export default function PendingSettlement() {
     // 检查是否为同一店铺
     const isSameMallId =
       data?.length > 0 &&
-      data.every((item) => item.mall_id === data[0].mall_id);
+      data.every((item) => item.mallId === data[0].mallId);
 
     if (!isSameMallId) {
       return null;
@@ -105,8 +105,8 @@ export default function PendingSettlement() {
     return data.reduce(
       (totals: any, item: any) => {
         totals.currency = item.currency || 'CNY';
-        totals.salesVolume += +item.sales_volume || 0;
-        totals.pendingAmount += +item.sales_amount || 0;
+        totals.salesVolume += +item.salesVolume || 0;
+        totals.pendingAmount += +item.salesAmount || 0;
         return totals;
       },
       { salesVolume: 0, pendingAmount: 0, currency: 'CNY' }
@@ -131,10 +131,10 @@ export default function PendingSettlement() {
       fixed: 'left',
       render: (text: any, record: any) => (
         <div>
-          <div>{record.mall_name}</div>
-          <Paragraph copyable={{ text: record.mall_id }}>
+          <div>{record.mallName}</div>
+          <Paragraph copyable={{ text: record.mallId }}>
             <span style={{ fontSize: '12px', color: '#666' }}>
-              {record.mall_id}
+              {record.mallId}
             </span>
           </Paragraph>
         </div>
@@ -142,30 +142,30 @@ export default function PendingSettlement() {
     },
     {
       title: '地区',
-      dataIndex: 'region_name',
-      key: 'region_name',
+      dataIndex: 'regionName',
+      key: 'regionName',
       width: 120,
       fixed: 'left',
     },
     {
       title: 'SKU ID',
-      dataIndex: 'sku_id',
-      key: 'sku_id',
+      dataIndex: 'skuId',
+      key: 'skuId',
       width: 150,
       fixed: 'left',
       render: (text: any) => <Paragraph copyable>{text}</Paragraph>,
     },
     {
       title: 'SKU货号',
-      dataIndex: 'sku_code',
-      key: 'sku_code',
+      dataIndex: 'skuCode',
+      key: 'skuCode',
       width: 150,
       render: (value: any) => value || '-',
     },
     {
       title: '货品名称',
-      dataIndex: 'goods_name',
-      key: 'goods_name',
+      dataIndex: 'goodsName',
+      key: 'goodsName',
       width: 300,
       render: (value: any) => (
         <Paragraph
@@ -180,42 +180,42 @@ export default function PendingSettlement() {
     },
     {
       title: 'SKU属性',
-      dataIndex: 'sku_property',
-      key: 'sku_property',
+      dataIndex: 'skuProperty',
+      key: 'skuProperty',
       width: 150,
     },
     {
       title: '产品名称',
-      dataIndex: 'product_name',
-      key: 'product_name',
+      dataIndex: 'productName',
+      key: 'productName',
       width: 150,
       render: (value: any, record: any) => value || '-',
     },
     {
       title: '产品成本',
-      dataIndex: 'cost_price',
-      key: 'cost_price',
+      dataIndex: 'costPrice',
+      key: 'costPrice',
       width: 120,
       render: (value: any, record: any) => formatAmount(value, record.currency),
     },
     {
       title: '待结算均价',
-      dataIndex: 'pending_average_price',
-      key: 'pending_average_price',
+      dataIndex: 'pendingAveragePrice',
+      key: 'pendingAveragePrice',
       width: 120,
       render: (value: any, record: any) => formatAmount(value, record.currency),
     },
     {
       title: '销量',
-      dataIndex: 'sales_volume',
-      key: 'sales_volume',
+      dataIndex: 'salesVolume',
+      key: 'salesVolume',
       width: 100,
       sorter: true,
     },
     {
       title: '待结算金额',
-      dataIndex: 'sales_amount',
-      key: 'sales_amount',
+      dataIndex: 'salesAmount',
+      key: 'salesAmount',
       width: 120,
       sorter: true,
       render: (value: any, record: any) => formatAmount(value, record.currency),
@@ -228,8 +228,8 @@ export default function PendingSettlement() {
     },
     {
       title: '更新时间',
-      dataIndex: 'updated_time',
-      key: 'updated_time',
+      dataIndex: 'updatedTime',
+      key: 'updatedTime',
       width: 120,
       sorter: true,
     },
@@ -271,13 +271,13 @@ export default function PendingSettlement() {
         {/* 添加筛选表单 */}
         <div style={{ marginBottom: 16 }}>
           <Form form={form} layout='inline' onFinish={handleFilter}>
-            <Form.Item name='mall_name' label='店铺名称'>
+            <Form.Item name='mallName' label='店铺名称'>
               <Input placeholder='请输入店铺名称' />
             </Form.Item>
-            <Form.Item name='region_name' label='地区'>
+            <Form.Item name='regionName' label='地区'>
               <Input placeholder='请输入地区' />
             </Form.Item>
-            <Form.Item name='sku_id' label='SKU ID'>
+            <Form.Item name='skuId' label='SKU ID'>
               <Input placeholder='请输入SKU ID，多个用逗号分隔' />
             </Form.Item>
             <Form.Item>

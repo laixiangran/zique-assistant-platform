@@ -17,8 +17,8 @@ export default function CostSettlement() {
   const [form] = Form.useForm();
   const [form2] = Form.useForm();
   const [filters, setFilters] = useState({
-    mall_name: '',
-    sku_id: '',
+    mallName: '',
+    skuId: '',
   });
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState('');
@@ -57,8 +57,8 @@ export default function CostSettlement() {
   const handleReset = () => {
     form.resetFields();
     setFilters({
-      mall_name: '',
-      sku_id: '',
+      mallName: '',
+      skuId: '',
     });
     setPageIndex(1);
   };
@@ -68,7 +68,7 @@ export default function CostSettlement() {
     // 检查是否为同一店铺
     const isSameMallId =
       data?.length > 0 &&
-      data.every((item) => item.mall_id === data[0].mall_id);
+      data.every((item) => item.mallId === data[0].mallId);
 
     if (!isSameMallId) {
       return null;
@@ -77,12 +77,12 @@ export default function CostSettlement() {
     return data.reduce(
       (totals: any, item: any) => {
         totals.currency = item.currency || 'CNY';
-        totals.todaySalesVolume += +item.today_sales_volume || 0;
-        totals.todaySalesAmount += +item.today_sales_amount || 0;
+        totals.todaySalesVolume += +item.todaySalesVolume || 0;
+        totals.todaySalesAmount += +item.todaySalesAmount || 0;
         totals.todayPromotionSalesVolume +=
-          +item.today_promotion_sales_volume || 0;
+          +item.todayPromotionSalesVolume || 0;
         totals.todayPromotionSalesAmount +=
-          +item.today_promotion_sales_amount || 0;
+          +item.todayPromotionSalesAmount || 0;
         return totals;
       },
       {
@@ -113,10 +113,10 @@ export default function CostSettlement() {
       fixed: 'left' as const,
       render: (text: any, record: any) => (
         <div>
-          <div>{record.mall_name}</div>
-          <Paragraph copyable={{ text: record.mall_id }}>
+          <div>{record.mallName}</div>
+          <Paragraph copyable={{ text: record.mallId }}>
             <span style={{ fontSize: '12px', color: '#666' }}>
-              {record.mall_id}
+              {record.mallId}
             </span>
           </Paragraph>
         </div>
@@ -124,103 +124,103 @@ export default function CostSettlement() {
     },
     {
       title: 'SPU ID',
-      dataIndex: 'spu_id',
-      key: 'spu_id',
+      dataIndex: 'spuId',
+      key: 'spuId',
       width: 150,
       fixed: 'left',
       render: (text: string) => <Paragraph copyable>{text}</Paragraph>,
     },
     {
       title: 'SKC ID',
-      dataIndex: 'skc_id',
-      key: 'skc_id',
+      dataIndex: 'skcId',
+      key: 'skcId',
       width: 150,
       fixed: 'left',
       render: (text: any) => <Paragraph copyable>{text}</Paragraph>,
     },
     {
       title: 'SKU ID',
-      dataIndex: 'sku_id',
-      key: 'sku_id',
+      dataIndex: 'skuId',
+      key: 'skuId',
       width: 150,
       fixed: 'left',
       render: (text: any) => <Paragraph copyable>{text}</Paragraph>,
     },
     {
       title: '产品名称',
-      dataIndex: 'product_name',
-      key: 'product_name',
+      dataIndex: 'productName',
+      key: 'productName',
       width: 150,
       render: (value: any) => formatVolume(value),
     },
     {
       title: '产品成本',
-      dataIndex: 'cost_price',
-      key: 'cost_price',
+      dataIndex: 'costPrice',
+      key: 'costPrice',
       width: 120,
       sorter: true,
       render: (value: any) => formatAmount(value),
     },
     {
       title: '今日均价',
-      dataIndex: 'today_average_price',
-      key: 'today_average_price',
+      dataIndex: 'todayAveragePrice',
+      key: 'todayAveragePrice',
       width: 120,
       sorter: true,
       render: (value: any) => formatAmount(value),
     },
     {
       title: '今日毛利',
-      dataIndex: 'today_gross_profit',
-      key: 'today_gross_profit',
+      dataIndex: 'todayGrossProfit',
+      key: 'todayGrossProfit',
       width: 120,
       sorter: true,
       render: (value: any) => formatAmount(value),
     },
     {
       title: '今日毛利率',
-      dataIndex: 'today_profit_rate',
-      key: 'today_profit_rate',
+      dataIndex: 'todayProfitRate',
+      key: 'todayProfitRate',
       width: 150,
       sorter: true,
       render: (value: any) => formatRate(value),
     },
     {
       title: '今日销量',
-      dataIndex: 'today_sales_volume',
-      key: 'today_sales_volume',
+      dataIndex: 'todaySalesVolume',
+      key: 'todaySalesVolume',
       width: 150,
       sorter: true,
       render: (value: any) => formatVolume(value),
     },
     {
       title: '今日销售额',
-      dataIndex: 'today_sales_amount',
-      key: 'today_sales_amount',
+      dataIndex: 'todaySalesAmount',
+      key: 'todaySalesAmount',
       width: 160,
       sorter: true,
       render: (value: any) => formatAmount(value),
     },
     {
       title: '今日活动销量',
-      dataIndex: 'today_promotion_sales_volume',
-      key: 'today_promotion_sales_volume',
+      dataIndex: 'todayPromotionSalesVolume',
+      key: 'todayPromotionSalesVolume',
       width: 160,
       sorter: true,
       render: (value: any) => formatVolume(value),
     },
     {
       title: '今日活动销售额',
-      dataIndex: 'today_promotion_sales_amount',
-      key: 'today_promotion_sales_amount',
+      dataIndex: 'todayPromotionSalesAmount',
+      key: 'todayPromotionSalesAmount',
       width: 160,
       sorter: true,
       render: (value: any) => formatAmount(value),
     },
     {
       title: '更新时间',
-      dataIndex: 'updated_time',
-      key: 'updated_time',
+      dataIndex: 'updatedTime',
+      key: 'updatedTime',
       width: 120,
       sorter: true,
     },
@@ -230,8 +230,8 @@ export default function CostSettlement() {
   const handleFilter = () => {
     const values = form.getFieldsValue();
     setFilters({
-      mall_name: values.mall_name || '',
-      sku_id: values.sku_id || '',
+      mallName: values.mallName || '',
+      skuId: values.skuId || '',
     });
     setPageIndex(1); // 重置到第一页
   };
@@ -272,10 +272,10 @@ export default function CostSettlement() {
         {/* 添加筛选表单 */}
         <div style={{ marginBottom: 16 }}>
           <Form form={form} layout='inline' onFinish={handleFilter}>
-            <Form.Item label='店铺名称' name='mall_name'>
+            <Form.Item label='店铺名称' name='mallName'>
               <Input placeholder='请输入店铺名称' />
             </Form.Item>
-            <Form.Item label='SKU ID' name='sku_id'>
+            <Form.Item label='SKU ID' name='skuId'>
               <Input placeholder='请输入SKU ID，多个用逗号分隔' />
             </Form.Item>
             <Form.Item>

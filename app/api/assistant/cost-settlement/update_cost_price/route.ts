@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
     // 用户权限验证
     const authResult = await authenticateUser(request);
     if (!authResult.success) {
-      return authResult.response;
+      return NextResponse.json(authResult, {
+        status: 403,
+      });
     }
 
     const body = await request.json();
@@ -20,19 +22,23 @@ export async function POST(request: NextRequest) {
       where: {
         skuId: skuId,
         mallId: {
-          [Op.in]: authResult.allowedMallIds
-        }
+          [Op.in]: authResult.allowedMallIds,
+        },
       },
       attributes: [
-        'pendingSalesAmount', 'pendingSalesVolume', 'pendingAveragePrice',
-        'd30ArrivalSalesAmount', 'd30ArrivalSalesVolume', 'd30ArrivalAveragePrice'
+        'pendingSalesAmount',
+        'pendingSalesVolume',
+        'pendingAveragePrice',
+        'd30ArrivalSalesAmount',
+        'd30ArrivalSalesVolume',
+        'd30ArrivalAveragePrice',
       ],
-      raw: true
+      raw: true,
     });
 
     if (currentData.length === 0) {
       return NextResponse.json(errorResponse('未找到对应的 SKU 记录'), {
-        status: 404
+        status: 404,
       });
     }
 
@@ -45,8 +51,10 @@ export async function POST(request: NextRequest) {
     } = data;
 
     // 将字符串转换为数值
-    const pendingAveragePrice = parseFloat(pendingAvgPrice?.toString() || '0') || 0;
-    const d30ArrivalAveragePrice = parseFloat(d30ArrivalAvgPrice?.toString() || '0') || 0;
+    const pendingAveragePrice =
+      parseFloat(pendingAvgPrice?.toString() || '0') || 0;
+    const d30ArrivalAveragePrice =
+      parseFloat(d30ArrivalAvgPrice?.toString() || '0') || 0;
 
     // 计算四个利润相关值
     // 1. 待结算毛利润=((待结算均价-产品成本-0.1)-待结算均价*2.5*0.01-(产品成本+0.1)*0.01)*待结算销量
@@ -76,7 +84,8 @@ export async function POST(request: NextRequest) {
     const d30_arrival_profit_rate =
       costPrice && d30ArrivalSalesVolume && d30_arrival_gross_profit
         ? parseFloat(d30_arrival_gross_profit.toFixed(2)) /
-          (costPrice * (parseFloat(d30ArrivalSalesVolume?.toString() || '0') || 0))
+          (costPrice *
+            (parseFloat(d30ArrivalSalesVolume?.toString() || '0') || 0))
         : 0;
 
     // 构建更新数据对象
@@ -85,23 +94,26 @@ export async function POST(request: NextRequest) {
       pendingProfitRate: pending_profit_rate,
       pendingGrossProfit: pending_gross_profit,
       d30ArrivalProfitRate: d30_arrival_profit_rate,
-      d30ArrivalGrossProfit: d30_arrival_gross_profit
+      d30ArrivalGrossProfit: d30_arrival_gross_profit,
     };
-    
+
     if (productName !== undefined) {
       updateData.productName = productName;
     }
-    
+
     await CostSettlement.update(updateData, {
       where: {
-        skuId: skuId
-      }
+        skuId: skuId,
+      },
     });
     return NextResponse.json(successResponse('成本价以及利润数据更新成功！'));
   } catch (error) {
     console.error('Database error:', error);
-    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
-      status: 500
-    });
+    return NextResponse.json(
+      errorResponse(error instanceof Error ? error.message : 'Unknown error'),
+      {
+        status: 500,
+      }
+    );
   }
 }

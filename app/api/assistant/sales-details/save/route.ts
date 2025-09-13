@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
     // 用户权限验证
     const authResult = await authenticateUser(request);
     if (!authResult.success) {
-      return authResult.response;
+      return NextResponse.json(authResult, {
+        status: 403,
+      });
     }
 
     const body = await request.json();
@@ -97,7 +99,8 @@ export async function POST(request: NextRequest) {
       if (today_sales_volume > today_promotion_sales_volume) {
         // 今日SKU销售额=(今日SKU销售销量-今日SKU活动销量)*申报价+今日SKU活动销售额
         todaySalesAmount =
-          (today_sales_volume - today_promotion_sales_volume) * declaredPriceConverted +
+          (today_sales_volume - today_promotion_sales_volume) *
+            declaredPriceConverted +
           todayPromotionSalesAmountConverted;
 
         // 今日SKU均价=今日SKU销售额/今日SKU销售销量

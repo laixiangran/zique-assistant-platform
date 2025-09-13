@@ -617,19 +617,4 @@ export const dataManagementAPI = {
   },
 };
 
-// Temu API
-export const temuAPI = {
-  // 验证用户信息
-  validateUserInfo: (temuCookies: string) => {
-    return fetch('https://agentseller.temu.com/api/seller/auth/userInfo', {
-      headers: {
-        'content-type': 'application/json',
-        cookie: temuCookies,
-      },
-      body: '{}',
-      method: 'POST',
-    }).then((res) => res.json());
-  },
-};
-
 export default apiClient;

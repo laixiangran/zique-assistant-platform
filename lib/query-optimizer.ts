@@ -1,5 +1,6 @@
 import { Op, FindOptions, Model, ModelStatic } from 'sequelize';
 import { getCache, setCache, generateQueryCacheKey } from './cache';
+import { formatObjectDates } from './utils';
 
 /**
  * 查询优化配置
@@ -161,7 +162,19 @@ export class QueryOptimizer {
     const results = await model.findAll(queryOptions);
 
     const hasMore = results.length > limit;
-    const data = hasMore ? results.slice(0, limit) : results;
+    const rawData = hasMore ? results.slice(0, limit) : results;
+    // 使用 toJSON() 获取序列化数据，然后应用 formatObjectDates 处理
+    const data = rawData.map((item) => {
+      if (
+        item &&
+        typeof item === 'object' &&
+        'toJSON' in item &&
+        typeof item.toJSON === 'function'
+      ) {
+        return formatObjectDates(item.toJSON());
+      }
+      return item;
+    });
     const nextCursor =
       hasMore && data.length > 0
         ? (data[data.length - 1] as any)[sortField]
@@ -207,9 +220,21 @@ export class QueryOptimizer {
 
     const result = await model.findAndCountAll(queryOptions);
     const totalPages = Math.ceil(result.count / pageSize);
+    // 使用 toJSON() 获取序列化数据，然后应用 formatObjectDates 处理
+    const data = result.rows.map((item) => {
+      if (
+        item &&
+        typeof item === 'object' &&
+        'toJSON' in item &&
+        typeof item.toJSON === 'function'
+      ) {
+        return formatObjectDates(item.toJSON());
+      }
+      return item;
+    });
 
     return {
-      data: result.rows,
+      data,
       total: result.count,
       pageIndex,
       pageSize,
@@ -273,31 +298,39 @@ export function createQueryOptimizer(
  * 预定义的字段选择配置
  */
 export const FIELD_SELECTIONS = {
-  MALL_STATE: ['id', 'mall_id', 'mall_name', 'region_name', 'updated_time'],
+  MALL_STATE: ['id', 'mallId', 'mallName', 'regionName', 'updatedTime'],
   ARRIVAL_DATA: [
     'id',
-    'mall_id',
-    'sku_id',
-    'accounting_time',
-    'sales_volume',
-    'sales_amount',
-    'updated_time',
+    'mallId',
+    'skuId',
+    'accountingTime',
+    'salesVolume',
+    'salesAmount',
+    'updatedTime',
   ],
   COST_SETTLEMENT: [
     'id',
-    'mall_id',
-    'sku_id',
-    'product_name',
-    'cost_price',
-    'updated_time',
+    'mallId',
+    'skuId',
+    'productName',
+    'costPrice',
+    'updatedTime',
   ],
   PENDING_SETTLEMENT: [
     'id',
-    'mall_id',
-    'sku_id',
-    'sales_volume',
-    'sales_amount',
-    'updated_time',
+    'mallId',
+    'mallName',
+    'regionCode',
+    'regionName',
+    'skuId',
+    'skuCode',
+    'goodsName',
+    'skuProperty',
+    'salesVolume',
+    'salesAmount',
+    'currency',
+    'createdTime',
+    'updatedTime',
   ],
-  SALES_DETAILS: ['id', 'mall_id', 'sku_id', 'updated_time'],
+  SALES_DETAILS: ['id', 'mallId', 'skuId', 'updatedTime'],
 };

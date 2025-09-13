@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       successResponse(
         {
-          malls: formatObjectDates(rows.map((row) => row.dataValues)),
+          malls: formatObjectDates(rows.map((row) => row.toJSON())),
           pagination: {
             total: count,
             pageIndex,

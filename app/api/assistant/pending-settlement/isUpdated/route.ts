@@ -9,7 +9,9 @@ export async function GET(request: NextRequest) {
     // 验证用户权限
     const authResult = await authenticateUser(request);
     if (!authResult.success) {
-      return authResult.response;
+      return NextResponse.json(authResult, {
+        status: 403,
+      });
     }
 
     const mallId = authResult.allowedMallIds?.[0];

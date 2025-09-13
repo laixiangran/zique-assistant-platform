@@ -284,10 +284,10 @@ export interface ApiResponse<T = any> {
   errorCode?: string;
 }
 
-export function successResponse<T>(
-  data: T,
+export function successResponse(
+  data: any = true,
   message = '操作成功'
-): ApiResponse<T> {
+): ApiResponse {
   return {
     success: true,
     data,
@@ -297,7 +297,7 @@ export function successResponse<T>(
 
 export function errorResponse(
   errorMsg: string,
-  errorCode = '400'
+  errorCode: any = null
 ): ApiResponse {
   return {
     success: false,

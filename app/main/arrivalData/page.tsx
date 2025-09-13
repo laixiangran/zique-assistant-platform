@@ -48,11 +48,11 @@ export default function PendingSettlement() {
 
   // 修改 filters 的初始值
   const [filters, setFilters] = useState({
-    mall_name: '',
-    region_name: '',
-    sku_id: '',
-    accounting_time_start: defaultDateRange.start,
-    accounting_time_end: defaultDateRange.end,
+    mallName: '',
+    regionName: '',
+    skuId: '',
+    accountingTimeStart: defaultDateRange.start,
+    accountingTimeEnd: defaultDateRange.end,
   });
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState('');
@@ -61,7 +61,7 @@ export default function PendingSettlement() {
   // 设置表单的初始值
   useEffect(() => {
     form.setFieldsValue({
-      accounting_time: [
+      accountingTime: [
         defaultDateRange.dayjs_start,
         defaultDateRange.dayjs_end,
       ],
@@ -102,15 +102,15 @@ export default function PendingSettlement() {
   const handleFilter = () => {
     const values = form.getFieldsValue();
     setFilters({
-      mall_name: values.mall_name || '',
-      region_name: values.region_name || '',
-      sku_id: values.sku_id || '',
+      mallName: values.mallName || '',
+      regionName: values.regionName || '',
+      skuId: values.skuId || '',
       // 添加财务时间筛选
-      accounting_time_start: values.accounting_time
-        ? values.accounting_time[0].format('YYYY-MM-DD')
+      accountingTimeStart: values.accountingTime
+        ? values.accountingTime[0].format('YYYY-MM-DD')
         : '',
-      accounting_time_end: values.accounting_time
-        ? values.accounting_time[1].format('YYYY-MM-DD')
+      accountingTimeEnd: values.accountingTime
+        ? values.accountingTime[1].format('YYYY-MM-DD')
         : '',
     });
     setPageIndex(1); // 重置到第一页
@@ -121,15 +121,15 @@ export default function PendingSettlement() {
     const defaultRange = getDefaultDateRange();
     form.resetFields();
     form.setFieldsValue({
-      accounting_time: [defaultRange.dayjs_start, defaultRange.dayjs_end],
+      accountingTime: [defaultRange.dayjs_start, defaultRange.dayjs_end],
     });
 
     setFilters({
-      mall_name: '',
-      region_name: '',
-      sku_id: '',
-      accounting_time_start: defaultRange.start,
-      accounting_time_end: defaultRange.end,
+      mallName: '',
+      regionName: '',
+      skuId: '',
+      accountingTimeStart: defaultRange.start,
+      accountingTimeEnd: defaultRange.end,
     });
     setPageIndex(1);
   };
@@ -139,7 +139,7 @@ export default function PendingSettlement() {
     // 检查是否为同一店铺
     const isSameMallId =
       data?.length > 0 &&
-      data.every((item) => item.mall_id === data[0].mall_id);
+      data.every((item) => item.mallId === data[0].mallId);
 
     if (!isSameMallId) {
       return null;
@@ -148,8 +148,8 @@ export default function PendingSettlement() {
     return data.reduce(
       (totals, item) => {
         totals.currency = item.currency || 'CNY';
-        totals.salesVolume += +item.sales_volume || 0;
-        totals.incomeAmount += +item.sales_amount || 0;
+        totals.salesVolume += +item.salesVolume || 0;
+        totals.incomeAmount += +item.salesAmount || 0;
         return totals;
       },
       { salesVolume: 0, incomeAmount: 0, currency: 'CNY' }
@@ -174,10 +174,10 @@ export default function PendingSettlement() {
       fixed: 'left' as const,
       render: (text: any, record: any) => (
         <div>
-          <div>{record.mall_name}</div>
-          <Paragraph copyable={{ text: record.mall_id }}>
+          <div>{record.mallName}</div>
+          <Paragraph copyable={{ text: record.mallId }}>
             <span style={{ fontSize: '12px', color: '#666' }}>
-              {record.mall_id}
+              {record.mallId}
             </span>
           </Paragraph>
         </div>
@@ -185,30 +185,30 @@ export default function PendingSettlement() {
     },
     {
       title: '地区',
-      dataIndex: 'region_name',
-      key: 'region_name',
+      dataIndex: 'regionName',
+      key: 'regionName',
       width: 120,
       fixed: 'left' as const,
     },
     {
       title: 'SKU ID',
-      dataIndex: 'sku_id',
-      key: 'sku_id',
+      dataIndex: 'skuId',
+      key: 'skuId',
       width: 150,
       fixed: 'left' as const,
       render: (text: any) => <Paragraph copyable>{text}</Paragraph>,
     },
     {
       title: 'SKU货号',
-      dataIndex: 'sku_code',
-      key: 'sku_code',
+      dataIndex: 'skuCode',
+      key: 'skuCode',
       width: 150,
       render: (value: any) => value || '-',
     },
     {
       title: '货品名称',
-      dataIndex: 'goods_name',
-      key: 'goods_name',
+      dataIndex: 'goodsName',
+      key: 'goodsName',
       width: 300,
       render: (value: any) => (
         <Paragraph
@@ -223,42 +223,42 @@ export default function PendingSettlement() {
     },
     {
       title: 'SKU属性',
-      dataIndex: 'sku_property',
-      key: 'sku_property',
+      dataIndex: 'skuProperty',
+      key: 'skuProperty',
       width: 150,
     },
     {
       title: '产品名称',
-      dataIndex: 'product_name',
-      key: 'product_name',
+      dataIndex: 'productName',
+      key: 'productName',
       width: 150,
       render: (value: any) => value || '-',
     },
     {
       title: '产品成本',
-      dataIndex: 'cost_price',
-      key: 'cost_price',
+      dataIndex: 'costPrice',
+      key: 'costPrice',
       width: 120,
       render: (value: any, record: any) => formatAmount(value, record.currency),
     },
     {
       title: '到账均价',
-      dataIndex: 'd30_arrival_average_price',
-      key: 'd30_arrival_average_price',
+      dataIndex: 'd30ArrivalAveragePrice',
+      key: 'd30ArrivalAveragePrice',
       width: 120,
       render: (value: any, record: any) => formatAmount(value, record.currency),
     },
     {
       title: '销量',
-      dataIndex: 'sales_volume',
-      key: 'sales_volume',
+      dataIndex: 'salesVolume',
+      key: 'salesVolume',
       width: 100,
       sorter: true,
     },
     {
       title: '收入金额',
-      dataIndex: 'sales_amount',
-      key: 'sales_amount',
+      dataIndex: 'salesAmount',
+      key: 'salesAmount',
       width: 120,
       sorter: true,
       render: (value: any, record: any) => formatAmount(value, record.currency),
@@ -271,15 +271,15 @@ export default function PendingSettlement() {
     },
     {
       title: '账务时间',
-      dataIndex: 'accounting_time',
-      key: 'accounting_time',
+      dataIndex: 'accountingTime',
+      key: 'accountingTime',
       width: 150,
       sorter: true,
     },
     {
       title: '更新时间',
-      dataIndex: 'updated_time',
-      key: 'updated_time',
+      dataIndex: 'updatedTime',
+      key: 'updatedTime',
       width: 120,
       sorter: true,
     },
@@ -327,28 +327,28 @@ export default function PendingSettlement() {
             style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}
           >
             <Form.Item
-              name='mall_name'
+              name='mallName'
               label='店铺名称'
               style={{ minWidth: '250px', flex: 1 }}
             >
               <Input placeholder='请输入店铺名称' />
             </Form.Item>
             <Form.Item
-              name='region_name'
+              name='regionName'
               label='地区'
               style={{ minWidth: '200px', flex: 1 }}
             >
               <Input placeholder='请输入地区' />
             </Form.Item>
             <Form.Item
-              name='sku_id'
+              name='skuId'
               label='SKU ID'
               style={{ minWidth: '250px', flex: 1 }}
             >
               <Input placeholder='请输入SKU ID，多个用逗号分隔' />
             </Form.Item>
             <Form.Item
-              name='accounting_time'
+              name='accountingTime'
               label='财务时间'
               style={{ minWidth: '350px', flex: 1.5 }}
             >

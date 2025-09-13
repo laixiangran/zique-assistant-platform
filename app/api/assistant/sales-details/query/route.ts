@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
     // 用户权限验证
     const authResult = await authenticateUser(request);
     if (!authResult.success) {
-      return authResult.response;
+      return NextResponse.json(authResult, {
+        status: 403,
+      });
     }
 
     // 解析查询参数
@@ -30,12 +32,16 @@ export async function GET(request: NextRequest) {
     const offset = (pageIndex - 1) * pageSize;
 
     // 构建查询条件（包含权限控制）
-    const whereCondition = await buildMallWhereCondition(authResult, mallId, mallName);
+    const whereCondition = await buildMallWhereCondition(
+      authResult,
+      mallId,
+      mallName
+    );
 
     if (skuId) {
       const skuIdList = skuId.split(',').map((id) => id.trim());
       whereCondition.skuId = {
-        [Op.in]: skuIdList
+        [Op.in]: skuIdList,
       };
     }
 
@@ -43,7 +49,7 @@ export async function GET(request: NextRequest) {
     const queryOptimizer = createQueryOptimizer({
       enableCache: true,
       cacheTimeout: 300,
-      selectFields: FIELD_SELECTIONS.SALES_DETAILS
+      selectFields: FIELD_SELECTIONS.SALES_DETAILS,
     });
 
     // 执行优化查询
@@ -54,15 +60,17 @@ export async function GET(request: NextRequest) {
         pageIndex,
         pageSize,
         sortField: sortField || 'updatedTime',
-        sortOrder: (sortOrder || 'DESC').toUpperCase() as 'ASC' | 'DESC'
+        sortOrder: (sortOrder || 'DESC').toUpperCase() as 'ASC' | 'DESC',
       },
       'sales_details'
     );
-    
+
     const { total, data: results } = queryResult;
 
     // 获取所有唯一的skuId
-    const skuIds = Array.from(new Set(results.map((item: any) => item.skuId).filter(Boolean)));
+    const skuIds = Array.from(
+      new Set(results.map((item: any) => item.skuId).filter(Boolean))
+    );
 
     // 批量查询costSettlement表
     let costSettlementMap: Record<string, { productName: string }> = {};
@@ -70,11 +78,11 @@ export async function GET(request: NextRequest) {
       const costSettlementResults = await CostSettlement.findAll({
         where: {
           skuId: {
-            [Op.in]: skuIds
-          }
+            [Op.in]: skuIds,
+          },
         },
         attributes: ['skuId', 'productName'],
-        raw: true
+        raw: true,
       });
 
       // 创建映射以便快速查找
@@ -96,16 +104,21 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(successResponse({
-      data: formattedResults || [],
-      total: queryResult.total,
-      pageIndex: queryResult.pageIndex,
-      pageSize: queryResult.pageSize,
-      totalPages: queryResult.totalPages
-    }));
+    return NextResponse.json(
+      successResponse({
+        data: formattedResults || [],
+        total: queryResult.total,
+        pageIndex: queryResult.pageIndex,
+        pageSize: queryResult.pageSize,
+        totalPages: queryResult.totalPages,
+      })
+    );
   } catch (error) {
-    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
-      status: 500
-    });
+    return NextResponse.json(
+      errorResponse(error instanceof Error ? error.message : 'Unknown error'),
+      {
+        status: 500,
+      }
+    );
   }
 }

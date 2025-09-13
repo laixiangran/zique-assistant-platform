@@ -9,61 +9,33 @@ export async function POST(request: NextRequest) {
     // 用户权限验证
     const authResult = await authenticateUser(request);
     if (!authResult.success) {
-      return authResult.response;
+      return NextResponse.json(authResult, {
+        status: 403,
+      });
     }
 
     const body = await request.json();
-    const { mallId, regionCode, data: datas } = body;
+    const { mallId, regionCode, data } = body;
 
     // 验证店铺权限
     const mallAccessResult = await validateMallAccess(authResult, mallId);
     if (!mallAccessResult.success) {
-      return mallAccessResult.response;
+      return NextResponse.json(mallAccessResult, {
+        status: 403,
+      });
     }
 
     // 先删除该店铺该区域的旧数据
     await PendingSettlementDetail.destroy({
       where: {
         mallId: mallId,
-        regionCode: regionCode
-      }
+        regionCode: regionCode,
+      },
     });
 
     // 再插入该店铺新数据
-    for (const data of datas) {
-      const {
-        mallId,
-        mallName,
-        regionCode,
-        regionName,
-        skuId,
-        skuCode,
-        goodsName,
-        skuProperty,
-        salesVolume,
-        estimatedPendingSalesAmount,
-        currency,
-        updatedTime = dayjs().format('YYYY-MM-DD HH:mm:ss'),
-      } = data;
-
-      const createTime = new Date();
-      const updateTime = new Date(updatedTime);
-      
-      await PendingSettlementDetail.create({
-        mallId: mallId,
-        mallName: mallName,
-        regionCode: regionCode,
-        regionName: regionName,
-        skuId: skuId,
-        skuCode: skuCode,
-        goodsName: goodsName,
-        skuProperty: skuProperty,
-        salesVolume: salesVolume,
-        salesAmount: estimatedPendingSalesAmount,
-        currency: currency,
-        createdTime: createTime,
-        updatedTime: updateTime
-      });
+    for (const d of data) {
+      await PendingSettlementDetail.create(d);
     }
 
     return NextResponse.json(successResponse('数据保存成功！'));

@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
     // 用户权限验证
     const authResult = await authenticateUser(request);
     if (!authResult.success) {
-      return authResult.response;
+      return NextResponse.json(authResult, {
+        status: 403,
+      });
     }
 
     // 解析查询参数
@@ -85,16 +87,21 @@ export async function GET(request: NextRequest) {
       updatedTime: dayjs(item.updatedTime).format('YYYY-MM-DD HH:mm:ss'),
     }));
 
-    return NextResponse.json(successResponse({
-      data: formattedResults || [],
-      total: queryResult.total,
-      pageIndex: queryResult.pageIndex,
-      pageSize: queryResult.pageSize,
-      totalPages: queryResult.totalPages,
-    }));
+    return NextResponse.json(
+      successResponse({
+        data: formattedResults || [],
+        total: queryResult.total,
+        pageIndex: queryResult.pageIndex,
+        pageSize: queryResult.pageSize,
+        totalPages: queryResult.totalPages,
+      })
+    );
   } catch (error) {
-    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
-      status: 500
-    });
+    return NextResponse.json(
+      errorResponse(error instanceof Error ? error.message : 'Unknown error'),
+      {
+        status: 500,
+      }
+    );
   }
 }
