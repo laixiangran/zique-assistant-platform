@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, message } from 'antd';
 import { UserOutlined, ShopOutlined } from '@ant-design/icons';
+import { adminDashboardAPI } from '@/app/services';
 
 interface DashboardStats {
   totalUsers: number;
@@ -20,19 +21,10 @@ const AdminHomePage: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-
-      // 获取统计数据 - 依赖cookie认证，无需手动传递token
-      const statsResponse = await fetch('/api/admin/dashboard/stats', {
-        credentials: 'include', // 确保发送cookie
-      });
-
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData.data);
+      const response = await adminDashboardAPI.getStats();
+      if (response.data?.success) {
+        setStats(response.data.data);
       }
-    } catch (error) {
-      console.error('获取仪表板数据失败:', error);
-      message.error('获取仪表板数据失败');
     } finally {
       setLoading(false);
     }

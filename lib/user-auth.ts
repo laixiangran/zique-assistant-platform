@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest, JWTPayload, errorResponse } from './utils';
 import { UserMallBinding } from '@/models';
 import { Op } from 'sequelize';
+import { temuAPI } from '@/app/services';
 
 export interface UserAuthResult {
   success: boolean;
@@ -19,19 +20,7 @@ export async function validateTemuApiAccess(
   temuCookies: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch(
-      'https://agentseller.temu.com/api/seller/auth/userInfo',
-      {
-        headers: {
-          'content-type': 'application/json',
-          cookie: temuCookies,
-          Referer: 'https://agentseller.temu.com/',
-        },
-        body: '{}',
-        method: 'POST',
-      }
-    );
-    const data = await response.json();
+    const data = await temuAPI.validateUserInfo(temuCookies);
     if (data.success) {
       return { success: true };
     } else {

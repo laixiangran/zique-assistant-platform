@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(successResponse(stats, '获取统计数据成功'));
   } catch (error) {
     console.error('获取仪表板统计数据失败:', error);
-    return NextResponse.json(errorResponse('获取统计数据失败'), { status: 500 });
+    return NextResponse.json(errorResponse('获取统计数据失败'), {
+      status: 500,
+    });
   }
 }

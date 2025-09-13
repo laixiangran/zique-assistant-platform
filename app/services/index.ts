@@ -147,8 +147,89 @@ export const adminAuthAPI = {
   // 管理员登出
   logout: () => request.post('/admin/logout'),
 
-  // 获取管理员个人信息
+  // 获取管理员信息
   profile: (signal?: AbortSignal) => request.get('/admin/profile', { signal }),
+};
+
+// 管理员仪表板API
+export const adminDashboardAPI = {
+  // 获取仪表板统计数据
+  getStats: (signal?: AbortSignal) =>
+    request.get('/admin/dashboard/stats', { signal }),
+};
+
+// 管理员套餐管理API
+export const adminPackagesAPI = {
+  // 获取套餐列表
+  getPackages: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      packageType?: string;
+    } = {},
+    signal?: AbortSignal
+  ) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        searchParams.append(key, value.toString());
+      }
+    });
+    const url = `/admin/packages${
+      searchParams.toString() ? `?${searchParams.toString()}` : ''
+    }`;
+    return request.get(url, { signal });
+  },
+
+  // 创建套餐
+  createPackage: (data: any) => request.post('/admin/packages', data),
+
+  // 更新套餐
+  updatePackage: (id: number, data: any) =>
+    request.put(`/admin/packages?id=${id}`, data),
+
+  // 删除套餐
+  deletePackage: (id: number) => request.delete(`/admin/packages?id=${id}`),
+};
+
+// 管理员插件管理API
+export const adminPluginsAPI = {
+  // 获取插件列表
+  getPlugins: (
+    params: {
+      pageIndex?: number;
+      pageSize?: number;
+      search?: string;
+      status?: string;
+    } = {},
+    signal?: AbortSignal
+  ) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        searchParams.append(key, value.toString());
+      }
+    });
+    const url = `/admin/plugins${
+      searchParams.toString() ? `?${searchParams.toString()}` : ''
+    }`;
+    return request.get(url, { signal });
+  },
+
+  // 创建插件
+  createPlugin: (data: any) => request.post('/admin/plugins', data),
+
+  // 更新插件（支持FormData）
+  updatePlugin: (formData: FormData) =>
+    request.put('/admin/plugins', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+
+  // 删除插件
+  deletePlugin: (id: number) => request.delete(`/admin/plugins?id=${id}`),
 };
 
 // 店铺相关API
@@ -533,6 +614,21 @@ export const dataManagementAPI = {
       }`;
       return request.get(url, { signal });
     },
+  },
+};
+
+// Temu API
+export const temuAPI = {
+  // 验证用户信息
+  validateUserInfo: (temuCookies: string) => {
+    return fetch('https://agentseller.temu.com/api/seller/auth/userInfo', {
+      headers: {
+        'content-type': 'application/json',
+        cookie: temuCookies,
+      },
+      body: '{}',
+      method: 'POST',
+    }).then((res) => res.json());
   },
 };
 

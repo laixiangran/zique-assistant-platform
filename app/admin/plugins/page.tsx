@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';
+import { adminPluginsAPI } from '@/app/services';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -77,34 +78,19 @@ const AdminPluginVersionsPage: React.FC = () => {
   const fetchPlugins = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        pageIndex: currentPage.toString(),
-        pageSize: pageSize.toString(),
+      const params = {
+        pageIndex: currentPage,
+        pageSize: pageSize,
         ...(searchText && { search: searchText }),
         ...(statusFilter && { status: statusFilter }),
-      });
+      };
 
-      // 获取admin_token，优先从localStorage，然后从sessionStorage
-      const token =
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
-
-      const response = await fetch(`/api/admin/plugins?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPlugins(data.data.list || []);
-        setTotal(data.data.pagination?.total || 0);
-      } else {
-        message.error('获取插件列表失败');
+      const response = await adminPluginsAPI.getPlugins(params);
+      
+      if (response.data?.success) {
+        setPlugins(response.data.data.list || []);
+        setTotal(response.data.data.pagination?.total || 0);
       }
-    } catch (error) {
-      console.error('获取插件列表失败:', error);
-      message.error('获取插件列表失败');
     } finally {
       setLoading(false);
     }
@@ -141,110 +127,62 @@ const AdminPluginVersionsPage: React.FC = () => {
 
   // 提交表单
   const handleSubmit = async (values: any) => {
-    try {
-      // 获取admin_token，优先从localStorage，然后从sessionStorage
-      const token =
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
+    if (editingPlugin) {
+      // 编辑模式：使用FormData格式
+      const formData = new FormData();
+      formData.append('id', editingPlugin.id.toString());
+      formData.append('version', values.version);
+      formData.append('description', values.description || '');
+      formData.append('changelog', values.changelog || '');
+      formData.append('isLatest', values.isLatest.toString());
+      formData.append('status', values.status);
 
-      if (editingPlugin) {
-        // 编辑模式：使用FormData格式
-        const formData = new FormData();
-        formData.append('id', editingPlugin.id.toString());
-        formData.append('version', values.version);
-        // releaseDate 不需要传递，编辑时保持原有发布时间
-        formData.append('description', values.description || '');
-        formData.append('changelog', values.changelog || '');
-        formData.append('isLatest', values.isLatest.toString());
-        formData.append('status', values.status);
-
-        // 如果有文件上传，添加文件
-        if (
-          values.file &&
-          values.file.fileList &&
-          values.file.fileList.length > 0
-        ) {
-          formData.append('file', values.file.fileList[0].originFileObj);
-        }
-
-        const response = await fetch('/api/admin/plugins', {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
-
-        if (response.ok) {
-          message.success('更新插件成功');
-          closeModal();
-          fetchPlugins();
-        } else {
-          const errorData = await response.json();
-          message.error(errorData.errorMsg || '更新失败');
-        }
-      } else {
-        // 新增模式：使用JSON格式，发布日期由API自动生成
-        const jsonData = {
-          version: values.version,
-          fileName: values.fileName || '',
-          fileSize: values.fileSize || 0,
-          downloadUrl: values.downloadUrl || '',
-          description: values.description || '',
-          changelog: values.changelog || '',
-          isLatest: values.isLatest,
-          status: values.status,
-        };
-
-        const response = await fetch('/api/admin/plugins', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(jsonData),
-        });
-
-        if (response.ok) {
-          message.success('创建插件成功');
-          closeModal();
-          fetchPlugins();
-        } else {
-          const errorData = await response.json();
-          message.error(errorData.errorMsg || '创建失败');
-        }
+      // 如果有文件上传，添加文件
+      if (
+        values.file &&
+        values.file.fileList &&
+        values.file.fileList.length > 0
+      ) {
+        formData.append('file', values.file.fileList[0].originFileObj);
       }
-    } catch (error) {
-      console.error('提交失败:', error);
-      message.error('操作失败');
+
+      const response = await adminPluginsAPI.updatePlugin(formData);
+
+      if (response.data?.success) {
+        message.success('更新插件成功');
+        closeModal();
+        fetchPlugins();
+      }
+    } else {
+      // 新增模式：使用JSON格式，发布日期由API自动生成
+      const jsonData = {
+        version: values.version,
+        fileName: values.fileName || '',
+        fileSize: values.fileSize || 0,
+        downloadUrl: values.downloadUrl || '',
+        description: values.description || '',
+        changelog: values.changelog || '',
+        isLatest: values.isLatest,
+        status: values.status,
+      };
+
+      const response = await adminPluginsAPI.createPlugin(jsonData);
+
+      if (response.data?.success) {
+        message.success('创建插件成功');
+        closeModal();
+        fetchPlugins();
+      }
     }
   };
 
   // 删除插件
   const handleDelete = async (id: number) => {
-    try {
-      // 获取admin_token，优先从localStorage，然后从sessionStorage
-      const token =
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
-
-      const response = await fetch(`/api/admin/plugins?id=${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        message.success('删除插件成功');
-        fetchPlugins();
-      } else {
-        const errorData = await response.json();
-        message.error(errorData.errorMsg || '删除失败');
-      }
-    } catch (error) {
-      console.error('删除失败:', error);
-      message.error('删除失败');
+    const response = await adminPluginsAPI.deletePlugin(id);
+    
+    if (response.data?.success) {
+      message.success('删除插件成功');
+      fetchPlugins();
     }
   };
 

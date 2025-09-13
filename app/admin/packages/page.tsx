@@ -20,6 +20,7 @@ import {
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { adminPackagesAPI } from '@/app/services';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -74,35 +75,18 @@ const AdminPackagesPage: React.FC = () => {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        pageIndex: currentPage.toString(),
-        pageSize: pageSize.toString(),
+      const params = {
+        page: currentPage,
+        pageSize: pageSize,
         ...(searchText && { search: searchText }),
         ...(typeFilter && { packageType: typeFilter }),
-      });
+      };
 
-      // 获取admin_token，优先从localStorage，然后从sessionStorage
-      const token =
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
-
-      const response = await fetch(`/api/admin/packages?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPackages(data.data.list || []);
-        setTotal(data.data.total || 0);
-      } else {
-        const errorData = await response.json();
-        message.error(errorData.errorMsg || '获取套餐列表失败');
+      const response = await adminPackagesAPI.getPackages(params);
+      if (response.data?.success) {
+        setPackages(response.data.data.list || []);
+        setTotal(response.data.data.total || 0);
       }
-    } catch (error) {
-      console.error('获取套餐列表失败:', error);
-      message.error('获取套餐列表失败');
     } finally {
       setLoading(false);
     }
@@ -146,92 +130,34 @@ const AdminPackagesPage: React.FC = () => {
 
   // 提交表单
   const handleSubmit = async (values: PackageFormData) => {
-    try {
-      const token =
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
-
-      const url = editingPackage
-        ? `/api/admin/packages?id=${editingPackage.id}`
-        : '/api/admin/packages';
-      const method = editingPackage ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(values),
-      });
-
-      if (response.ok) {
-        message.success(editingPackage ? '套餐更新成功' : '套餐创建成功');
-        closeModal();
-        fetchPackages();
-      } else {
-        const errorData = await response.json();
-        message.error(errorData.errorMsg || '操作失败');
-      }
-    } catch (error) {
-      console.error('提交失败:', error);
-      message.error('提交失败');
+    const response = editingPackage
+      ? await adminPackagesAPI.updatePackage(editingPackage.id, values)
+      : await adminPackagesAPI.createPackage(values);
+    
+    if (response.data?.success) {
+      message.success(editingPackage ? '套餐更新成功' : '套餐创建成功');
+      closeModal();
+      fetchPackages();
     }
   };
 
   // 修改套餐状态
   const handleStatusChange = async (packageData: MembershipPackage) => {
-    try {
-      const token =
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
-
-      const response = await fetch(`/api/admin/packages?id=${packageData.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ isActive: !packageData.isActive }),
-      });
-
-      if (response.ok) {
-        message.success(`套餐${!packageData.isActive ? '启用' : '禁用'}成功`);
-        fetchPackages();
-      } else {
-        const errorData = await response.json();
-        message.error(errorData.errorMsg || '操作失败');
-      }
-    } catch (error) {
-      console.error('状态修改失败:', error);
-      message.error('状态修改失败');
+    const response = await adminPackagesAPI.updatePackage(packageData.id, { isActive: !packageData.isActive });
+    
+    if (response.data?.success) {
+      message.success(`套餐${!packageData.isActive ? '启用' : '禁用'}成功`);
+      fetchPackages();
     }
   };
 
   // 删除套餐
   const handleDelete = async (id: number) => {
-    try {
-      const token =
-        localStorage.getItem('admin_token') ||
-        sessionStorage.getItem('admin_token');
-
-      const response = await fetch(`/api/admin/packages?id=${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        message.success('删除套餐成功');
-        fetchPackages();
-      } else {
-        const errorData = await response.json();
-        message.error(errorData.errorMsg || '删除失败');
-      }
-    } catch (error) {
-      console.error('删除失败:', error);
-      message.error('删除失败');
+    const response = await adminPackagesAPI.deletePackage(id);
+    
+    if (response.data?.success) {
+      message.success('删除套餐成功');
+      fetchPackages();
     }
   };
 

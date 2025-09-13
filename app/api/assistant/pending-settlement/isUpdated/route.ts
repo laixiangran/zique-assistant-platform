@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
   try {
     // 验证用户权限
     const authResult = await authenticateUser(request);
-    console.log('authResult: ', authResult);
     if (!authResult.success) {
       return authResult.response;
     }
@@ -39,8 +38,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(successResponse(false));
   } catch (error) {
-    return NextResponse.json(errorResponse(error instanceof Error ? error.message : 'Unknown error'), {
-      status: 500
-    });
+    return NextResponse.json(
+      errorResponse(error instanceof Error ? error.message : 'Unknown error'),
+      {
+        status: 500,
+      }
+    );
   }
 }
