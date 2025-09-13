@@ -31,13 +31,13 @@ export async function POST(request) {
       } = data;
 
       // 验证店铺权限
-    const mallAccessResult = await validateMallAccess(authResult, mallId);
-    if (!mallAccessResult.success) {
-      return mallAccessResult.response;
-    }
+      const mallAccessResult = await validateMallAccess(authResult, mallId);
+      if (!mallAccessResult.success) {
+        return mallAccessResult.response;
+      }
 
       const currentTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
-      
+
       await ArrivalDataDetail.create({
         mall_id: mallId,
         mall_name: mallName,
